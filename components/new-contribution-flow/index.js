@@ -14,6 +14,7 @@ import { TransactionTypes } from '../../lib/constants/transactions';
 import { getEnvVar } from '../../lib/env-utils';
 import { formatErrorMessage, getErrorFromGraphqlException } from '../../lib/errors';
 import { API_V2_CONTEXT, gqlV2 } from '../../lib/graphql/helpers';
+import { addCreateCollectiveMutation } from '../../lib/graphql/mutations';
 import { getStripe, stripeTokenToPaymentMethod } from '../../lib/stripe';
 import { getDefaultTierAmount, getTierMinAmount, isFixedContribution } from '../../lib/tier-utils';
 import { objectToQueryString } from '../../lib/url_helpers';
@@ -95,11 +96,13 @@ class ContributionFlow extends React.Component {
     refetchLoggedInUser: PropTypes.func,
     /** @ignore from withUser */
     LoggedInUser: PropTypes.object,
+    createCollective: PropTypes.func.isRequired, // from mutation
   };
 
   constructor(props) {
     super(props);
     this.mainContainerRef = React.createRef();
+    this.activeFormRef = React.createRef();
     this.state = {
       error: null,
       stripe: null,
@@ -248,6 +251,32 @@ class ContributionFlow extends React.Component {
     return encodeURIComponent(currentPath);
   }
 
+  /** Validate step profile, create new incognito/org if necessary */
+  /** TODO: create profile for new org */
+  validateStepProfile = async () => {
+    if (!this.state.stepProfile) {
+      return false;
+    }
+
+    // Check if we're creating a new profile
+    if (this.state.stepProfile.id === ('incognito' || 'org.new')) {
+      this.setState({ isSubmitting: true });
+
+      try {
+        const { data: result } = await this.props.createCollective(this.state.stepProfile);
+        const createdProfile = result.createCollective;
+        await this.props.refetchLoggedInUser();
+        this.setState({ stepProfile: createdProfile, isSubmitting: false });
+      } catch (error) {
+        this.setState({ error: error.message, isSubmitting: false });
+        window.scrollTo(0, 0);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   createProfileForRecurringContributions = async data => {
     if (this.state.isSubmitting) {
       return false;
@@ -369,7 +398,9 @@ class ContributionFlow extends React.Component {
       {
         name: 'profile',
         label: intl.formatMessage(stepsLabels.contributeAs),
-        isCompleted: Boolean(this.state.stepProfile),
+        isCompleted:
+          Boolean(this.state.stepProfile && !this.state.stepProfile?.isNewOrg) ||
+          Boolean(this.state.stepProfile?.isNewOrg && this.state.stepProfile?.completed),
       },
     ];
 
@@ -624,5 +655,7 @@ const addConfirmOrderMutation = graphql(
 );
 
 export default injectIntl(
-  withUser(addSignupMutation(addConfirmOrderMutation(addCreateOrderMutation(ContributionFlow)))),
+  withUser(
+    addSignupMutation(addConfirmOrderMutation(addCreateOrderMutation(addCreateCollectiveMutation(ContributionFlow)))),
+  ),
 );
