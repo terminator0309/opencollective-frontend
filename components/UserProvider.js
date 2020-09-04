@@ -39,10 +39,12 @@ class UserProvider extends React.Component {
   };
 
   async componentDidMount() {
+    console.log('user provider CDM');
     window.addEventListener('storage', this.checkLogin);
 
     // Disable auto-login on SignIn page
     if (this.props.skipRouteCheck || Router.pathname !== '/signin') {
+      console.log('skipping route check and not on sign in page');
       await this.login();
     }
   }
@@ -52,6 +54,7 @@ class UserProvider extends React.Component {
   }
 
   checkLogin = event => {
+    console.log('checking login');
     if (event.key === 'LoggedInUser') {
       if (event.oldValue && !event.newValue) {
         return this.setState({ LoggedInUser: null });
@@ -78,6 +81,7 @@ class UserProvider extends React.Component {
   };
 
   login = async (token, twoFactorAuthenticatorCode) => {
+    console.log('login???');
     const { getLoggedInUser } = this.props;
     try {
       const LoggedInUser = token
@@ -111,6 +115,7 @@ class UserProvider extends React.Component {
    * if you really need to be up-to-date with server.
    */
   refetchLoggedInUser = async () => {
+    console.log('refetch logged in user');
     const { getLoggedInUser } = this.props;
     try {
       const LoggedInUser = await getLoggedInUser({ ignoreLocalStorage: true });

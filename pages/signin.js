@@ -41,7 +41,9 @@ class SigninPage extends React.Component {
   state = { error: null, success: null };
 
   async componentDidMount() {
+    console.log('pages/signin CDM');
     if (this.props.token) {
+      console.log('with token');
       let user;
       try {
         user = await this.props.login(this.props.token);
@@ -59,11 +61,13 @@ class SigninPage extends React.Component {
         this.setState({ error: err.message || err });
       }
     } else {
+      console.log('no token');
       this.props.login();
     }
   }
 
   async componentDidUpdate(oldProps) {
+    console.log('pages/signin CDU');
     const wasConnected = !oldProps.LoggedInUser && this.props.LoggedInUser;
     if (wasConnected && !this.props.errorLoggedInUser && this.props.form !== 'create-account') {
       // --- User logged in ---
@@ -74,6 +78,12 @@ class SigninPage extends React.Component {
       await Router.replaceRoute(redirect || '/');
       window.scroll(0, 0);
     } else if (this.props.token && oldProps.token !== this.props.token) {
+      console.log(
+        'pages/signin CDU this.props.token',
+        this.props.token,
+        'pages/signin CDU oldProps.token',
+        oldProps.token,
+      );
       // --- There's a new token in town 🤠 ---
       const user = await this.props.login(this.props.token);
       if (!user) {
