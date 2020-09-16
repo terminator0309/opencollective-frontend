@@ -148,6 +148,7 @@ class StyledCheckbox extends React.Component {
         size={size}
         width={width}
         alignItems={alignItems}
+        name={name}
       >
         <input id={inputId} name={name} type="checkbox" checked={realChecked} disabled={disabled} readOnly />
         <CustomCheckbox data-cy="custom-checkbox">
