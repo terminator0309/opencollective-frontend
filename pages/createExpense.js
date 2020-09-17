@@ -172,9 +172,6 @@ const createExpensePageQuery = gql`
           all
         }
       }
-      createdByUser {
-        id
-      }
       host {
         id
         slug

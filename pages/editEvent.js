@@ -48,9 +48,6 @@ const editEventPageQuery = gql`
       type
       slug
       path
-      createdByUser {
-        id
-      }
       name
       imageUrl
       backgroundImage
