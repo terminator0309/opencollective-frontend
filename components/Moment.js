@@ -1,7 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { FormattedDate } from 'react-intl';
+
+dayjs.extend(relativeTime);
 
 const Moment = ({ value, relative }) => {
   const date = dayjs(new Date(value));
