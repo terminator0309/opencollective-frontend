@@ -1,8 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 
@@ -18,9 +15,6 @@ import Footer from './Footer';
 import Header from './Header';
 import { withUser } from './UserProvider';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
 class CreateEvent extends React.Component {
   static propTypes = {
     parentCollective: PropTypes.object,
@@ -31,7 +25,7 @@ class CreateEvent extends React.Component {
 
   constructor(props) {
     super(props);
-    const timezone = dayjs.tz.guess();
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     this.state = {
       event: {
