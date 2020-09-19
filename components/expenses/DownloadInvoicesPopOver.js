@@ -4,8 +4,8 @@ import { gql } from '@apollo/client';
 import { graphql } from '@apollo/client/react/hoc';
 import { FileDownload } from '@styled-icons/fa-solid/FileDownload';
 import classnames from 'classnames';
-import { groupBy, omit, uniq } from 'lodash';
 import dayjs from 'dayjs';
+import { groupBy, omit, uniq } from 'lodash';
 import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 

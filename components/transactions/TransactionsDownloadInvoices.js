@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { gql, useQuery } from '@apollo/client';
 import { Download as IconDownload } from '@styled-icons/feather/Download';
-import { groupBy, sumBy, truncate, uniq } from 'lodash';
 import dayjs from 'dayjs';
+import { groupBy, sumBy, truncate, uniq } from 'lodash';
 import { FormattedMessage } from 'react-intl';
 
 import { formatCurrency } from '../../lib/currency-utils';

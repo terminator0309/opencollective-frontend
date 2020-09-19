@@ -5,11 +5,11 @@ import { graphql } from '@apollo/client/react/hoc';
 import { RadioButtonChecked } from '@styled-icons/material/RadioButtonChecked';
 import { RadioButtonUnchecked } from '@styled-icons/material/RadioButtonUnchecked';
 import themeGet from '@styled-system/theme-get';
+import dayjs from 'dayjs';
 import { get, truncate } from 'lodash';
 import memoizeOne from 'memoize-one';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import styled from 'styled-components';
-import dayjs from 'dayjs';
 
 import { isPrepaid } from '../lib/constants/payment-methods';
 import { compose, reportValidityHTML5 } from '../lib/utils';

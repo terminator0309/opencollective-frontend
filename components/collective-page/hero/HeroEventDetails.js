@@ -2,11 +2,9 @@ import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { Clock } from '@styled-icons/feather/Clock';
 import { MapPin } from '@styled-icons/feather/MapPin';
-
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-
+import utc from 'dayjs/plugin/utc';
 import { FormattedDate, FormattedMessage, FormattedTime } from 'react-intl';
 
 import Link from '../../Link';
