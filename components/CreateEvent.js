@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import momentTimezone from 'moment-timezone';
 import { Button } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 
 import { getErrorFromGraphqlException } from '../lib/errors';
 import { addCreateCollectiveMutation } from '../lib/graphql/mutations';
@@ -16,6 +18,9 @@ import Footer from './Footer';
 import Header from './Header';
 import { withUser } from './UserProvider';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 class CreateEvent extends React.Component {
   static propTypes = {
     parentCollective: PropTypes.object,
@@ -26,7 +31,8 @@ class CreateEvent extends React.Component {
 
   constructor(props) {
     super(props);
-    const timezone = momentTimezone.tz.guess();
+    const timezone = dayjs.tz.guess();
+
     this.state = {
       event: {
         parentCollective: props.parentCollective,

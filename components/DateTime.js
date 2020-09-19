@@ -1,6 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import momentTimezone from 'moment-timezone';
+import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 import ReactDateTime from 'react-datetime';
 
 class DateTime extends React.Component {
@@ -12,7 +18,8 @@ class DateTime extends React.Component {
   render() {
     const props = this.props;
     const { date, timezone } = props;
-    const value = momentTimezone.tz(new Date(date), timezone);
+
+    const value = dayjs(new Date(date)).tz(timezone);
 
     return <ReactDateTime value={value} utc={timezone === 'utc'} {...props} />;
   }
