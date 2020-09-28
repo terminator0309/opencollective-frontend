@@ -12,6 +12,7 @@ import { GQLV2_PAYMENT_METHOD_TYPES } from '../lib/constants/payment-methods';
 import { generateNotFoundError, getErrorFromGraphqlException } from '../lib/errors';
 import { API_V2_CONTEXT, gqlV2 } from '../lib/graphql/helpers';
 import { floatAmountToCents } from '../lib/math';
+import { isTierExpired } from '../lib/tier-utils';
 import { compose, parseToBoolean } from '../lib/utils';
 
 import Container from '../components/Container';
@@ -196,7 +197,7 @@ class NewContributionFlowPage extends React.Component {
           <Loading />
         </Container>
       );
-    } else if (!account.host && !account.isHost) {
+    } else if (!account.host) {
       return this.renderMessage('info', intl.formatMessage(messages.missingHost));
     } else if (!account.isActive) {
       return this.renderMessage('info', intl.formatMessage(messages.inactiveCollective));
@@ -205,7 +206,7 @@ class NewContributionFlowPage extends React.Component {
       return this.renderMessage('info', intl.formatMessage(messages.emptyTier, intlParams), true);
     } else if (this.props.tierId && !tier) {
       return this.renderMessage('warning', intl.formatMessage(messages.missingTier), true);
-    } else if (tier && tier.endsAt && new Date(tier.endsAt) < new Date()) {
+    } else if (tier && isTierExpired(tier)) {
       return this.renderMessage('warning', intl.formatMessage(messages.expiredTier), true);
     } else if (account.settings.disableCustomContributions && !tier) {
       return this.renderMessage('warning', intl.formatMessage(messages.disableCustomContributions), true);
@@ -251,6 +252,26 @@ class NewContributionFlowPage extends React.Component {
   }
 }
 
+const hostFieldsFragment = gqlV2/* GraphQL */ `
+  fragment ContributionFlowHostFields on Host {
+    id
+    legacyId
+    slug
+    name
+    settings
+    location {
+      country
+    }
+    supportedPaymentMethods
+    payoutMethods {
+      id
+      name
+      data
+      type
+    }
+  }
+`;
+
 const accountFieldsFragment = gqlV2/* GraphQL */ `
   fragment ContributionFlowAccountFields on Account {
     id
@@ -269,6 +290,11 @@ const accountFieldsFragment = gqlV2/* GraphQL */ `
     location {
       country
     }
+    ... on Organization {
+      host {
+        ...ContributionFlowHostFields
+      }
+    }
     ... on AccountWithContributions {
       platformFeePercent
       platformContributionAvailable
@@ -285,21 +311,7 @@ const accountFieldsFragment = gqlV2/* GraphQL */ `
     ... on AccountWithHost {
       hostFeePercent
       host {
-        id
-        legacyId
-        slug
-        name
-        settings
-        location {
-          country
-        }
-        supportedPaymentMethods
-        payoutMethods {
-          id
-          name
-          data
-          type
-        }
+        ...ContributionFlowHostFields
       }
     }
     ... on Event {
@@ -323,11 +335,12 @@ const accountFieldsFragment = gqlV2/* GraphQL */ `
       }
     }
   }
+  ${hostFieldsFragment}
 `;
 
 const accountQuery = gqlV2/* GraphQL */ `
   query ContributionFlowAccountQuery($collectiveSlug: String!) {
-    account(slug: $collectiveSlug) {
+    account(slug: $collectiveSlug, throwIfMissing: false) {
       ...ContributionFlowAccountFields
     }
   }
@@ -349,6 +362,7 @@ const accountWithTierQuery = gqlV2/* GraphQL */ `
       customFields
       availableQuantity
       maxQuantity
+      endsAt
       amount {
         valueInCents
         currency

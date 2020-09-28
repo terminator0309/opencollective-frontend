@@ -9,6 +9,7 @@ import { FormattedMessage, injectIntl } from 'react-intl';
 import hasFeature, { FEATURES } from '../lib/allowed-features';
 import { getCollectiveTypeForUrl } from '../lib/collective.lib';
 import { CollectiveType } from '../lib/constants/collectives';
+import expenseTypes from '../lib/constants/expenseTypes';
 import { formatErrorMessage, generateNotFoundError, getErrorFromGraphqlException } from '../lib/errors';
 import FormPersister from '../lib/form-persister';
 import { API_V2_CONTEXT, gqlV2 } from '../lib/graphql/helpers';
@@ -74,6 +75,7 @@ class CreateExpensePage extends React.Component {
         type: PropTypes.string.isRequired,
         twitterHandle: PropTypes.string,
         imageUrl: PropTypes.string,
+        isArchived: PropTypes.bool,
         expensesTags: PropTypes.arrayOf(
           PropTypes.shape({
             id: PropTypes.string.isRequired,
@@ -226,6 +228,8 @@ class CreateExpensePage extends React.Component {
         return <ErrorPage error={generateNotFoundError(collectiveSlug)} log={false} />;
       } else if (!hasFeature(data.account, FEATURES.RECEIVE_EXPENSES)) {
         return <PageFeatureNotSupported />;
+      } else if (data.account.isArchived) {
+        return <PageFeatureNotSupported showContactSupportLink={false} />;
       }
     }
 
@@ -246,13 +250,13 @@ class CreateExpensePage extends React.Component {
               </ContainerOverlay>
             )}
             <Box maxWidth={1242} m="0 auto" px={[2, 3, 4]} py={[4, 5]}>
-              <Flex justifyContent="space-between" flexWrap="wrap">
-                <Box flex="1 1 500px" minWidth={300} maxWidth={792} mr={[0, 3, 5]} mb={5}>
+              <Flex justifyContent="space-between" flexDirection={['column', 'row']}>
+                <Box minWidth={300} maxWidth={['100%', null, null, 728]} mr={[0, 3, 5]} mb={5} flexGrow="1">
                   <H1 fontSize="24px" lineHeight="32px" mb={24} py={2}>
                     {step === STEPS.FORM ? (
                       <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
                     ) : (
-                      <FormattedMessage id="Expense.summary" defaultMessage="Expense summary" />
+                      <FormattedMessage id="Summary" defaultMessage="Summary" />
                     )}
                   </H1>
                   {data.loading || loadingLoggedInUser ? (
@@ -317,7 +321,11 @@ class CreateExpensePage extends React.Component {
                                 loading={this.state.isSubmitting}
                                 minWidth={175}
                               >
-                                <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
+                                {this.state.expense?.type === expenseTypes.FUNDING_REQUEST ? (
+                                  <FormattedMessage id="ExpenseForm.SubmitRequest" defaultMessage="Submit request" />
+                                ) : (
+                                  <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
+                                )}
                               </StyledButton>
                             </Flex>
                           </Box>
@@ -326,7 +334,7 @@ class CreateExpensePage extends React.Component {
                     </Box>
                   )}
                 </Box>
-                <Box minWidth={270} width={['100%', null, null, 275]} mt={70}>
+                <Box maxWidth={['100%', 210, null, 275]} mt={70}>
                   <ExpenseInfoSidebar isLoading={data.loading} collective={collective} host={host} />
                 </Box>
               </Flex>
@@ -371,6 +379,7 @@ const createExpensePageQuery = gqlV2/* GraphQL */ `
       imageUrl
       twitterHandle
       currency
+      isArchived
       expensePolicy
       expensesTags {
         id
