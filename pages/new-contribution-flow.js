@@ -210,7 +210,7 @@ class NewContributionFlowPage extends React.Component {
       return this.renderMessage('warning', intl.formatMessage(messages.expiredTier), true);
     } else if (account.settings.disableCustomContributions && !tier) {
       return this.renderMessage('warning', intl.formatMessage(messages.disableCustomContributions), true);
-    } else if (router.query.step === 'success') {
+    } else if (router?.query?.step === 'success') {
       return <NewContributionFlowSuccess collective={account} />;
     } else {
       return (
