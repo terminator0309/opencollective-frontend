@@ -77,7 +77,7 @@ class ExportForm extends React.Component {
     super(props);
 
     // Calculate the start: first day of previous month & end date: today.
-    const oneMonthAgo = dayjs().subtract(1, 'month').$d;
+    const oneMonthAgo = dayjs().subtract(1, 'month').toDate();
     const defaultStartDate = new Date(oneMonthAgo.getFullYear(), oneMonthAgo.getMonth(), 1);
     const defaultEndDate = new Date();
 
