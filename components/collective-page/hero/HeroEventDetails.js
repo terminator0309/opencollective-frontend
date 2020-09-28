@@ -4,11 +4,12 @@ import { Clock } from '@styled-icons/feather/Clock';
 import { MapPin } from '@styled-icons/feather/MapPin';
 import { FormattedDate, FormattedMessage, FormattedTime } from 'react-intl';
 
+import dayjs from '../../../lib/dayjs';
+
 import Link from '../../Link';
 import StyledTooltip from '../../StyledTooltip';
 
 import HeroNote from './HeroNote';
-import dayjs from '../../../lib/dayjs';
 
 const FormattedDateProps = (value, timeZone) => ({
   value,
