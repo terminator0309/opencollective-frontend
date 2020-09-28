@@ -1,13 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone';
-import utc from 'dayjs/plugin/utc';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 import ReactDateTime from 'react-datetime';
+
+import dayjs from '../lib/dayjs';
 
 class DateTime extends React.Component {
   static propTypes = {
