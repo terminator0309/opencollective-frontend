@@ -1362,6 +1362,7 @@ type ExpensesStatsType {
 Possible statuses for an Expense
 """
 enum ExpenseStatus {
+  DRAFT
   PENDING
   APPROVED
   REJECTED
@@ -1944,7 +1945,7 @@ type Mutation {
   ): ExpenseType
   markOrderAsPaid(id: Int!): OrderType
   markPendingOrderAsExpired(id: Int!): OrderType
-  createExpense(expense: ExpenseInputType!): ExpenseType
+  createExpense(expense: ExpenseInputType!): ExpenseType @deprecated(reason: "2020-09-17: Now using GQLV2 for that")
   editExpense(expense: ExpenseInputType!): ExpenseType
   deleteExpense(id: Int!): ExpenseType
   markExpenseAsUnpaid(id: Int!, processorFeeRefunded: Boolean!): ExpenseType
@@ -2834,7 +2835,7 @@ type PaymentMethodType {
   To group multiple payment methods. Used for Gift Cards
   """
   batch: String
-  SourcePaymentMethodId: Int
+  SourcePaymentMethodId: Int @deprecated(reason: "2020-09-28: Not used")
   type: String
   data: JSON
   name: String
@@ -3167,7 +3168,7 @@ type Query {
     + dateTo for getting an invoice over a date range.
     """
     invoiceInputType: InvoiceInputType!
-  ): InvoiceType
+  ): InvoiceType @deprecated(reason: "2020-09-17: PDF service is now using the GQLV2 transactions endpoint")
   TransactionInvoice(
     """
     Slug of the transaction.

@@ -3147,6 +3147,70 @@ input ExpenseCreateInput {
   payeeLocation: LocationInput
 }
 
+input ExpenseInviteDraftInput {
+  """
+  Main title of the expense
+  """
+  description: String
+
+  """
+  Longer text to attach to the expense
+  """
+  longDescription: String
+
+  """
+  Tags associated to the expense (ie. Food, Engineering...)
+  """
+  tags: [String]
+
+  """
+  The type of the expense
+  """
+  type: ExpenseType!
+
+  """
+  A private note that will be attached to your invoice, as HTML
+  """
+  privateMessage: String
+
+  """
+  Tax ID, VAT number...etc This information will be printed on your invoice.
+  """
+  invoiceInfo: String
+
+  """
+  @deprecated 2020-04-08: Please use the items field - The list of items for
+  this expense. Total amount will be computed from them.
+  """
+  attachments: [ExpenseItemCreateInput]
+
+  """
+  The list of items for this expense. Total amount will be computed from them.
+  """
+  items: [ExpenseItemCreateInput]
+
+  """
+  (Optional) A list of files that you want to attach to this expense
+  """
+  attachedFiles: [ExpenseAttachedFileInput]
+
+  """
+  Account to reimburse
+  """
+  payee: ExpenseInvitee!
+
+  """
+  The address of the payee
+  """
+  payeeLocation: LocationInput
+}
+
+input ExpenseInvitee {
+  name: String
+  email: String
+  isInvite: Boolean
+}
+
 """
 Fields for an expense item
 """
@@ -3330,6 +3394,7 @@ input ExpenseReferenceInput {
 }
 
 enum ExpenseStatus {
+  DRAFT
   PENDING
   APPROVED
   REJECTED
@@ -3343,6 +3408,7 @@ enum ExpenseStatus {
 Describes the values allowed to filter expenses, namely all the expense statuses and the special "READY_TO_PAY" value.
 """
 enum ExpenseStatusFilter {
+  DRAFT
   PENDING
   APPROVED
   REJECTED
@@ -4593,6 +4659,21 @@ type Mutation {
   ): Expense!
 
   """
+  Persist an Expense as a draft and invite someone to edit and submit it.
+  """
+  draftExpenseAndInviteUser(
+    """
+    Expense data
+    """
+    expense: ExpenseInviteDraftInput!
+
+    """
+    Account where the expense will be created
+    """
+    account: AccountReferenceInput!
+  ): Expense!
+
+  """
   Edit the settings for the given account
   """
   editAccountSetting(
@@ -5799,6 +5880,11 @@ type Query {
     Identifiers to retrieve the expense.
     """
     expense: ExpenseReferenceInput
+
+    """
+    Submit-on-behalf key to access drafted Expenses
+    """
+    draftKey: String
   ): Expense
   hosts(
     """
