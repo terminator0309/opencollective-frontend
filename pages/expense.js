@@ -50,8 +50,8 @@ const messages = defineMessages({
 });
 
 const expensePageQuery = gqlV2/* GraphQL */ `
-  query ExpensePage($legacyExpenseId: Int!) {
-    expense(expense: { legacyId: $legacyExpenseId }) {
+  query ExpensePage($legacyExpenseId: Int!, $draftKey: String!) {
+    expense(expense: { legacyId: $legacyExpenseId }, draftKey: $draftKey) {
       ...ExpensePageExpenseFields
     }
 
@@ -90,10 +90,11 @@ const SIDE_MARGIN_WIDTH = 'calc((100% - 1200px) / 2)';
 const { USER, ORGANIZATION } = CollectiveType;
 
 class ExpensePage extends React.Component {
-  static getInitialProps({ query: { parentCollectiveSlug, collectiveSlug, ExpenseId, createSuccess } }) {
+  static getInitialProps({ query: { parentCollectiveSlug, collectiveSlug, ExpenseId, createSuccess, key } }) {
     return {
       parentCollectiveSlug,
       collectiveSlug,
+      draftKey: key,
       legacyExpenseId: parseInt(ExpenseId),
       createSuccess: Boolean(createSuccess),
     };
@@ -103,6 +104,7 @@ class ExpensePage extends React.Component {
     collectiveSlug: PropTypes.string,
     parentCollectiveSlug: PropTypes.string,
     legacyExpenseId: PropTypes.number,
+    draftKey: PropTypes.string,
     LoggedInUser: PropTypes.object,
     loadingLoggedInUser: PropTypes.bool,
     createSuccess: PropTypes.bool,
@@ -144,6 +146,10 @@ class ExpensePage extends React.Component {
 
   componentDidMount() {
     this.handlePolling();
+
+    if (this.props.data.expense.status === 'DRAFT' && this.props.draftKey) {
+      this.setState(() => ({ status: PAGE_STATUS.EDIT, editedExpense: this.props.data.expense }));
+    }
     document.addEventListener('mousemove', this.handlePolling);
   }
 
@@ -234,9 +240,9 @@ class ExpensePage extends React.Component {
   }
 
   clonePageQueryCacheData() {
-    const { client, legacyExpenseId, collectiveSlug } = this.props;
+    const { client, legacyExpenseId, collectiveSlug, key } = this.props;
     const query = expensePageQuery;
-    const variables = { collectiveSlug, legacyExpenseId };
+    const variables = { collectiveSlug, legacyExpenseId, key };
     const data = cloneDeep(client.readQuery({ query, variables }));
     return [data, query, variables];
   }
@@ -483,15 +489,16 @@ class ExpensePage extends React.Component {
                   expense={editedExpense}
                   expensesTags={this.getSuggestedTags(collective)}
                   payoutProfiles={payoutProfiles}
+                  loggedInAccount={loggedInAccount}
                   onCancel={() => this.setState({ status: PAGE_STATUS.VIEW, editedExpense: null })}
-                  validateOnChange
-                  disableSubmitIfUntouched
                   onSubmit={editedExpense =>
                     this.setState({
                       editedExpense,
                       status: PAGE_STATUS.EDIT_SUMMARY,
                     })
                   }
+                  validateOnChange
+                  disableSubmitIfUntouched
                 />
               </Box>
             )}

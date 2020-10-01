@@ -6,6 +6,7 @@ import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import styled from 'styled-components';
 
 import { CollectiveType } from '../../lib/constants/collectives';
+import expenseStatus from '../../lib/constants/expense-status';
 import expenseTypes from '../../lib/constants/expenseTypes';
 import { PayoutMethodType } from '../../lib/constants/payout-method';
 import { requireFields } from '../../lib/form-utils';
@@ -20,6 +21,7 @@ import { P, Span } from '../Text';
 
 import ExpenseAttachedFilesForm from './ExpenseAttachedFilesForm';
 import ExpenseFormItems, { addNewExpenseItem } from './ExpenseFormItems';
+import ExepnseFormPayeeSignUpStep from './ExpenseFormPayeeSignUpStep';
 import ExpenseFormPayeeStep from './ExpenseFormPayeeStep';
 import { validateExpenseItem } from './ExpenseItemForm';
 import ExpensePayeeDetails from './ExpensePayeeDetails';
@@ -159,8 +161,10 @@ const ExpenseFormBody = ({
   autoFocusTitle,
   onCancel,
   formPersister,
+  loggedInAccount,
   expensesTags,
   shouldLoadValuesFromPersister,
+  isDraft,
 }) => {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -179,7 +183,7 @@ const ExpenseFormBody = ({
 
   // When user logs in we set its account as the default payout profile if not yet defined
   React.useEffect(() => {
-    if (!values.payee && !isEmpty(payoutProfiles)) {
+    if (loggedInAccount && !values.payee && !isEmpty(payoutProfiles)) {
       formik.setFieldValue('payee', first(payoutProfiles));
     }
   }, [payoutProfiles]);
@@ -189,7 +193,7 @@ const ExpenseFormBody = ({
     if (!values.payeeLocation?.address && values.payee?.location) {
       setLocationFromPayee(formik, values.payee);
     }
-    if (values.payee?.isInvite) {
+    if (!isDraft && values.payee?.isInvite) {
       setStep(STEPS.EXPENSE);
     }
   }, [values.payee]);
@@ -197,7 +201,7 @@ const ExpenseFormBody = ({
   // Return to Payee step if type is changed
   React.useEffect(() => {
     setStep(STEPS.PAYEE);
-    if (values.payee?.isInvite) {
+    if (!isDraft && values.payee?.isInvite) {
       formik.setFieldValue('payee', null);
     }
   }, [values.type]);
@@ -239,14 +243,24 @@ const ExpenseFormBody = ({
       {values.type && (
         <StyledCard mt={4} p={[16, 16, 32]} overflow="initial">
           <HiddenFragment show={step == STEPS.PAYEE}>
-            <ExpenseFormPayeeStep
-              formik={formik}
-              payoutProfiles={payoutProfiles}
-              collective={collective}
-              onCancel={onCancel}
-              onNext={() => setStep(STEPS.EXPENSE)}
-              isOnBehalf={isOnBehalf}
-            />
+            {isDraft ? (
+              <ExepnseFormPayeeSignUpStep
+                collective={collective}
+                formik={formik}
+                onCancel={onCancel}
+                onNext={() => setStep(STEPS.EXPENSE)}
+                payoutProfiles={payoutProfiles}
+              />
+            ) : (
+              <ExpenseFormPayeeStep
+                collective={collective}
+                formik={formik}
+                isOnBehalf={isOnBehalf}
+                onCancel={onCancel}
+                onNext={() => setStep(STEPS.EXPENSE)}
+                payoutProfiles={payoutProfiles}
+              />
+            )}
           </HiddenFragment>
 
           <HiddenFragment show={step == STEPS.EXPENSE}>
@@ -449,6 +463,8 @@ ExpenseFormBody.propTypes = {
   shouldLoadValuesFromPersister: PropTypes.bool,
   onCancel: PropTypes.func,
   formPersister: PropTypes.object,
+  loggedInAccount: PropTypes.object,
+  isDraft: PropTypes.bool,
   expensesTags: PropTypes.arrayOf(PropTypes.string),
   collective: PropTypes.shape({
     slug: PropTypes.string.isRequired,
@@ -474,14 +490,21 @@ const ExpenseForm = ({
   onCancel,
   validateOnChange,
   formPersister,
+  loggedInAccount,
   expensesTags,
   shouldLoadValuesFromPersister,
 }) => {
   const [hasValidate, setValidate] = React.useState(validateOnChange);
+  const initialValues = { ...getDefaultExpense(collective), ...expense };
+  const isDraft = expense.status === expenseStatus.DRAFT;
+  if (isDraft) {
+    initialValues.payee = expense.draft.payee;
+    initialValues.items = expense.draft.items;
+  }
 
   return (
     <Formik
-      initialValues={{ ...getDefaultExpense(collective), ...expense }}
+      initialValues={initialValues}
       validate={hasValidate && validate}
       onSubmit={async (values, formik) => {
         // We initially let the browser do the validation. Then once users try to submit the
@@ -503,8 +526,10 @@ const ExpenseForm = ({
           autoFocusTitle={autoFocusTitle}
           onCancel={onCancel}
           formPersister={formPersister}
+          loggedInAccount={loggedInAccount}
           expensesTags={expensesTags}
           shouldLoadValuesFromPersister={shouldLoadValuesFromPersister}
+          isDraft
         />
       )}
     </Formik>
@@ -516,9 +541,11 @@ ExpenseForm.propTypes = {
   autoFocusTitle: PropTypes.bool,
   validateOnChange: PropTypes.bool,
   shouldLoadValuesFromPersister: PropTypes.bool,
+  isEditing: PropTypes.bool,
   onCancel: PropTypes.func,
   /** To save draft of form values */
   formPersister: PropTypes.object,
+  loggedInAccount: PropTypes.object,
   expensesTags: PropTypes.arrayOf(PropTypes.string),
   collective: PropTypes.shape({
     currency: PropTypes.string.isRequired,
@@ -535,6 +562,9 @@ ExpenseForm.propTypes = {
   expense: PropTypes.shape({
     type: PropTypes.oneOf(Object.values(expenseTypes)),
     description: PropTypes.string,
+    status: PropTypes.string,
+    payee: PropTypes.object,
+    draft: PropTypes.object,
     items: PropTypes.arrayOf(
       PropTypes.shape({
         url: PropTypes.string,
