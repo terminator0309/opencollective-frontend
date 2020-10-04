@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDateTime from 'react-datetime';
-import momentTimezone from 'moment-timezone';
 
 import dayjs from '../lib/dayjs';
 
