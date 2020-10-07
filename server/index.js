@@ -18,6 +18,7 @@ const hyperwatch = require('./hyperwatch');
 const rateLimiter = require('./rate-limiter');
 const duplicateHandler = require('./duplicate-handler');
 const { getContentSecurityPolicyConfig } = require('./content-security-policy');
+const serviceLimiter = require('./service-limiter');
 const { parseToBooleanDefaultFalse } = require('./utils');
 
 const app = express();
@@ -40,6 +41,10 @@ const start = id =>
     hyperwatch(app);
 
     rateLimiter(app);
+
+    if (parseToBooleanDefaultFalse(process.env.SERVICE_LIMITER)) {
+      app.use(serviceLimiter);
+    }
 
     app.use(helmet({ contentSecurityPolicy: getContentSecurityPolicyConfig() }));
 
