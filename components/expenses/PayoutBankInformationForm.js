@@ -91,6 +91,7 @@ const Input = props => {
           {({ field, meta }) => (
             <StyledInputField
               label={input.name}
+              labelFontSize="13px"
               required={input.required}
               error={(meta.touched || disabled) && meta.error}
             >
@@ -117,6 +118,7 @@ const Input = props => {
           {({ field, meta }) => (
             <StyledInputField
               label={input.name}
+              labelFontSize="13px"
               required={input.required}
               error={(meta.touched || disabled) && meta.error}
             >
@@ -254,13 +256,11 @@ const DetailsForm = ({ disabled, getFieldName, formik, host, currency }) => {
           refetch={refetch}
         />
       ))}
-      <Box mt={3} flex="1">
-        <P fontSize="14px" fontWeight="bold">
-          Recipient&apos;s Address&nbsp;
-          <StyledTooltip content="Address of the owner of the bank account (not the address of the bank)">
-            <Info size={16} />
-          </StyledTooltip>
-        </P>
+      <Box mt={3} flex="1" fontSize="14px" fontWeight="bold">
+        Recipient&apos;s Address&nbsp;
+        <StyledTooltip content="Address of the owner of the bank account (not the address of the bank)">
+          <Info size={16} />
+        </StyledTooltip>
       </Box>
       {addressFields.map(field => (
         <FieldGroup
@@ -290,11 +290,12 @@ DetailsForm.propTypes = {
 };
 
 const availableCurrenciesQuery = gqlV2/* GraphQL */ `
-  query PayoutBankInformationAvailableCurrencies($slug: String) {
+  query PayoutBankInformationAvailableCurrencies($slug: String, $ignoreBlockedCurrencies: Boolean) {
     host(slug: $slug) {
       slug
+      currency
       transferwise {
-        availableCurrencies
+        availableCurrencies(ignoreBlockedCurrencies: $ignoreBlockedCurrencies)
       }
     }
   }
@@ -303,10 +304,10 @@ const availableCurrenciesQuery = gqlV2/* GraphQL */ `
 /**
  * Form for payout bank information. Must be used with Formik.
  */
-const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency }) => {
+const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency, ignoreBlockedCurrencies, optional }) => {
   const { data, loading } = useQuery(availableCurrenciesQuery, {
     context: API_V2_CONTEXT,
-    variables: { slug: host.slug },
+    variables: { slug: host.slug, ignoreBlockedCurrencies },
     // Skip fetching/loading if the currency is fixed or avaialbleCurrencies was pre-loaded
     skip: Boolean(fixedCurrency || host.transferwise?.availableCurrencies),
   });
@@ -323,11 +324,14 @@ const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency })
 
   const availableCurrencies = host.transferwise?.availableCurrencies || data?.host?.transferwise?.availableCurrencies;
   const currencies = formatStringOptions(fixedCurrency ? [fixedCurrency] : availableCurrencies.map(c => c.code));
+  if (optional) {
+    currencies.unshift({ label: 'No selection', value: null });
+  }
   const currencyFieldName = getFieldName('data.currency');
   const selectedCurrency = fixedCurrency || get(formik.values, currencyFieldName);
   const validateCurrencyMinimumAmount = () => {
     // Only validate minimum amount if the form has items
-    if (formik?.values?.items) {
+    if (formik?.values?.items?.length > 0) {
       const invoiceTotalAmount = formik.values.items.reduce(
         (amount, attachment) => amount + (attachment.amount || 0),
         0,
@@ -335,9 +339,9 @@ const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency })
       const minAmountForSelectedCurrency =
         availableCurrencies.find(c => c.code === selectedCurrency)?.minInvoiceAmount * 100;
       if (invoiceTotalAmount < minAmountForSelectedCurrency) {
-        return `The minimum amount for ${selectedCurrency} is ${formatCurrency(
+        return `The minimum amount for transfering to ${selectedCurrency} is ${formatCurrency(
           minAmountForSelectedCurrency,
-          selectedCurrency,
+          host.currency,
         )}`;
       }
     }
@@ -346,13 +350,12 @@ const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency })
   return (
     <React.Fragment>
       <Field name={currencyFieldName} validate={validateCurrencyMinimumAmount}>
-        {({ field, meta }) => (
-          <StyledInputField name={field.name} error={meta.error} label={formatMessage(msg.currency)} mt={3} mb={2}>
+        {({ field }) => (
+          <StyledInputField name={field.name} label={formatMessage(msg.currency)} labelFontSize="13px" mt={3} mb={2}>
             {({ id }) => (
               <StyledSelect
                 inputId={id}
                 name={field.name}
-                error={meta.error}
                 onChange={({ value }) => {
                   formik.setFieldValue(getFieldName('data'), {});
                   formik.setFieldValue(field.name, value);
@@ -381,11 +384,14 @@ const PayoutBankInformationForm = ({ isNew, getFieldName, host, fixedCurrency })
 PayoutBankInformationForm.propTypes = {
   host: PropTypes.shape({
     slug: PropTypes.string.isRequired,
+    currency: PropTypes.string,
     transferwise: PropTypes.shape({
       availableCurrencies: PropTypes.arrayOf(PropTypes.object),
     }),
   }).isRequired,
   isNew: PropTypes.bool,
+  optional: PropTypes.bool,
+  ignoreBlockedCurrencies: PropTypes.bool,
   getFieldName: PropTypes.func.isRequired,
   /** Enforces a fixedCurrency */
   fixedCurrency: PropTypes.string,

@@ -26,6 +26,14 @@ const load = async app => {
       status: { active: true },
       // Expose logs (HTTP and Websocket)
       logs: { active: true },
+      // Extract IP address without complex fuss
+      cloudflare: { active: true },
+      // Parse User Agent
+      agent: { active: true },
+      // Get hostname (reverse IP) and verify it
+      hostname: { active: true },
+      // Compute identity (requires agent and hostname)
+      identity: { active: true },
     },
   });
 
@@ -66,7 +74,7 @@ const load = async app => {
 
   // Configure access Logs in dev and production
 
-  const consoleLogOutput = process.env.NODE_ENV === 'development' ? 'console' : 'text';
+  const consoleLogOutput = process.env.OC_ENV === 'development' ? 'console' : 'text';
   pipeline.getNode('main').map(log => console.log(lib.logger.defaultFormatter.format(log, consoleLogOutput)));
 
   // Start

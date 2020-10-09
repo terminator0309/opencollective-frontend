@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { groupBy, isEqual, last, sortBy, truncate } from 'lodash';
+import { groupBy, intersection, isEqual, last, sortBy, truncate } from 'lodash';
 import memoizeOne from 'memoize-one';
 import ReactDOM from 'react-dom';
 import { defineMessages, injectIntl } from 'react-intl';
@@ -57,7 +57,7 @@ const CollectiveLabelTextContainer = styled.div`
  * Default label builder used to render a collective. For sections titles and custom options,
  * this will just return the default label.
  */
-const DefaultCollectiveLabel = ({ value: collective }) => (
+export const DefaultCollectiveLabel = ({ value: collective }) => (
   <Flex alignItems="center">
     <Avatar collective={collective} radius={28} />
     <CollectiveLabelTextContainer>
@@ -84,6 +84,10 @@ DefaultCollectiveLabel.propTypes = {
 // Some flags to differentiate options in the picker
 export const FLAG_COLLECTIVE_PICKER_COLLECTIVE = '__collective_picker_collective__';
 const FLAG_NEW_COLLECTIVE = '__collective_picker_new__';
+
+const { USER, ORGANIZATION, COLLECTIVE, FUND, EVENT, PROJECT } = CollectiveType;
+
+const sortedAccountTypes = ['INDIVIDUAL', USER, ORGANIZATION, COLLECTIVE, FUND, EVENT, PROJECT];
 
 /**
  * An overset og `StyledSelect` specialized to display, filter and pick a collective from a given list.
@@ -134,7 +138,8 @@ class CollectivePicker extends React.PureComponent {
 
     // Group collectives under categories, sort the categories labels and the collectives inside them
     const collectivesByTypes = groupBy(collectives, 'type');
-    const sortedActiveTypes = Object.keys(collectivesByTypes).sort();
+    const sortedActiveTypes = intersection(sortedAccountTypes, Object.keys(collectivesByTypes));
+
     return sortedActiveTypes.map(type => {
       const sectionI18n = CollectiveTypesI18n[type];
       const sortedCollectives = sortFunc(collectivesByTypes[type]);
@@ -303,11 +308,18 @@ class CollectivePicker extends React.PureComponent {
                     zIndex: 9999,
                   }}
                 >
-                  <StyledCard p={3} my={1}>
+                  <StyledCard
+                    p={3}
+                    my={1}
+                    boxShadow="-2px 4px 7px 0 rgba(78, 78, 78, 14%)"
+                    maxHeight={315}
+                    overflowY="auto"
+                  >
                     <CreateCollectiveMiniForm
                       type={createFormCollectiveType}
                       onCancel={this.setCreateFormCollectiveType}
                       addLoggedInUserAsAdmin={addLoggedInUserAsAdmin}
+                      optionalFields={this.props.createCollectiveOptionalFields}
                       onSuccess={collective => {
                         if (onChange) {
                           onChange({ label: collective.name, value: collective });
@@ -344,7 +356,7 @@ CollectivePicker.propTypes = {
   /** Custom options to be passed to styled select */
   customOptions: PropTypes.arrayOf(
     PropTypes.shape({
-      label: PropTypes.string,
+      label: PropTypes.node,
       value: PropTypes.any,
     }),
   ),
@@ -386,6 +398,8 @@ CollectivePicker.propTypes = {
     type: PropTypes.string,
     name: PropTypes.string,
   }),
+  /** A list of optional fields to include in the form */
+  createCollectiveOptionalFields: PropTypes.array,
 };
 
 CollectivePicker.defaultProps = {

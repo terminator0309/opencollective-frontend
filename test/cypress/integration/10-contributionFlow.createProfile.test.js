@@ -5,6 +5,9 @@ describe('Contribution Flow: Create profile', () => {
     // Create account is the default view when unauthenticated
     cy.visit('/apex/donate');
 
+    // Skip the step details on the new contribution flow
+    cy.contains('button', 'Next step').click();
+
     // Has TOS
     cy.contains('By joining, you agree to our Terms of Service and Privacy Policy.');
     cy.get('[data-cy="join-conditions"] a[href="/tos"]');
@@ -34,6 +37,9 @@ describe('Contribution Flow: Create profile', () => {
   it('Organization profile', () => {
     // Create account is the default view when unauthenticated
     cy.visit('/apex/donate');
+
+    // Skip the step details on the new contribution flow
+    cy.contains('button', 'Next step').click();
 
     // Select "Create oganization"
     cy.get('[data-cy="cf-content"]').contains('Contribute as an organization').click();

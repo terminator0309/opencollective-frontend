@@ -18,7 +18,7 @@ import { githubProfileUrl, twitterProfileUrl } from '../../../lib/url_helpers';
 import CollectiveCallsToAction from '../../CollectiveCallsToAction';
 import Container from '../../Container';
 import DefinedTerm, { Terms } from '../../DefinedTerm';
-import { Flex } from '../../Grid';
+import { Box, Flex } from '../../Grid';
 import I18nCollectiveTags from '../../I18nCollectiveTags';
 import Link from '../../Link';
 import LinkCollective from '../../LinkCollective';
@@ -86,7 +86,7 @@ const Hero = ({ collective, host, isAdmin, onPrimaryColorChange, callsToAction, 
   const isCollective = collective.type === CollectiveType.COLLECTIVE;
   const isEvent = collective.type === CollectiveType.EVENT;
   const isProject = collective.type === CollectiveType.PROJECT;
-  const isFund = collective.type === CollectiveType.FUND || collective.settings?.fund === true; // Funds MVP, to refactor
+  const isFund = collective.type === CollectiveType.FUND;
 
   const handleHeroMessage = msg => {
     if (!msg) {
@@ -168,10 +168,18 @@ const Hero = ({ collective, host, isAdmin, onPrimaryColorChange, callsToAction, 
               </StyledButton>
             </Link>
           )}
-          <H1 color="black.800" fontSize="32px" lineHeight="36px" textAlign="left" data-cy="collective-title">
-            {collective.name || collective.slug}
-          </H1>
-
+          <Box maxWidth={['70%', '60%', null, '40%', '45%']}>
+            <H1
+              color="black.800"
+              fontSize="32px"
+              lineHeight="36px"
+              textAlign="left"
+              data-cy="collective-title"
+              wordBreak="normal"
+            >
+              {collective.name || collective.slug}
+            </H1>
+          </Box>
           {collective.company && (
             <StyledLink as={UserCompany} fontSize="20px" fontWeight={600} company={collective.company} />
           )}
@@ -222,7 +230,7 @@ const Hero = ({ collective, host, isAdmin, onPrimaryColorChange, callsToAction, 
                     href={collective.website}
                     title={intl.formatMessage(Translations.website)}
                     aria-label="Website link"
-                    openInNewTab
+                    openInNewTabNoFollow
                   >
                     <StyledRoundButton size={32} mr={3}>
                       <Globe size={14} />
@@ -247,7 +255,7 @@ const Hero = ({ collective, host, isAdmin, onPrimaryColorChange, callsToAction, 
                   />
                 </Container>
               )}
-              {host && collective.isApproved && (
+              {host && collective.isApproved && !collective.isHost && (
                 <Fragment>
                   <Container mx={1} color="#969ba3" my={2}>
                     <FormattedMessage

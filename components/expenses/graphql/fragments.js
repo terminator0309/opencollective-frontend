@@ -20,7 +20,11 @@ export const loggedInAccountExpensePayoutFieldsFragment = gqlV2/* GraphQL */ `
       data
       isSaved
     }
-    adminMemberships: memberOf(role: ADMIN, includeIncognito: false, accountType: [ORGANIZATION, INDIVIDUAL]) {
+    adminMemberships: memberOf(
+      role: ADMIN
+      includeIncognito: false
+      accountType: [ORGANIZATION, COLLECTIVE, EVENT, FUND, PROJECT, INDIVIDUAL]
+    ) {
       nodes {
         id
         account {
@@ -29,6 +33,17 @@ export const loggedInAccountExpensePayoutFieldsFragment = gqlV2/* GraphQL */ `
           imageUrl
           type
           name
+          isActive
+          ... on AccountWithHost {
+            host {
+              id
+            }
+          }
+          ... on Organization {
+            host {
+              id
+            }
+          }
           location {
             address
             country
@@ -46,23 +61,29 @@ export const loggedInAccountExpensePayoutFieldsFragment = gqlV2/* GraphQL */ `
   }
 `;
 
-const hostFieldsFragment = gqlV2/* GraphQL */ `
-  fragment HostFields on Host {
+export const expenseHostFields = gqlV2/* GraphQL */ `
+  fragment ExpenseHostFields on Host {
     id
     name
     slug
     type
+    currency
+    isHost
     expensePolicy
     website
     settings
-    connectedAccounts {
+    paypalPreApproval {
       id
-      service
+      balance {
+        currency
+        valueInCents
+      }
     }
     location {
       address
       country
     }
+    supportedPayoutMethods
     plan {
       transferwisePayouts
       transferwisePayoutsLimit
@@ -75,6 +96,7 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
     id
     legacyId
     description
+    longDescription
     currency
     type
     status
@@ -111,6 +133,11 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
         name
         data
         isSaved
+      }
+      ... on AccountWithHost {
+        host {
+          id
+        }
       }
     }
     payeeLocation {
@@ -151,7 +178,7 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
       ... on AccountWithHost {
         isApproved
         host {
-          ...HostFields
+          ...ExpenseHostFields
         }
       }
 
@@ -162,7 +189,7 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
         isActive
         balance
         host {
-          ...HostFields
+          ...ExpenseHostFields
         }
       }
 
@@ -211,6 +238,7 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
       id
       type
       createdAt
+      data
       individual {
         id
         type
@@ -222,7 +250,7 @@ export const expensePageExpenseFieldsFragment = gqlV2/* GraphQL */ `
   }
 
   ${commentFieldsFragment}
-  ${hostFieldsFragment}
+  ${expenseHostFields}
 `;
 
 export const expensesListFieldsFragment = gqlV2/* GraphQL */ `
@@ -253,6 +281,7 @@ export const expensesListFieldsFragment = gqlV2/* GraphQL */ `
       id
       type
       slug
+      name
       imageUrl(height: 80)
       isAdmin
     }

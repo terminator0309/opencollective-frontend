@@ -6,6 +6,7 @@ import { withRouter } from 'next/router';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
 
+import { isTierExpired } from '../../lib/tier-utils';
 // Open Collective Frontend imports
 import { getWebsiteUrl } from '../../lib/utils';
 
@@ -114,6 +115,7 @@ class TierPage extends Component {
       interval: PropTypes.string.isRequired,
       currency: PropTypes.string,
       endsAt: PropTypes.string,
+      button: PropTypes.string,
       goal: PropTypes.number,
       description: PropTypes.string,
       longDescription: PropTypes.string,
@@ -159,7 +161,7 @@ class TierPage extends Component {
     const canEdit = LoggedInUser && LoggedInUser.canEditCollective(collective);
     const amountRaised = tier.interval ? tier.stats.totalRecurringDonations : tier.stats.totalDonated;
     const shareBlock = this.renderShareBlock();
-    const isPassed = tier.endsAt && new Date(tier.endsAt) < new Date();
+    const isPassed = isTierExpired(tier);
 
     return (
       <Container pb={4}>
@@ -356,7 +358,7 @@ class TierPage extends Component {
                       }}
                     >
                       <StyledButton buttonStyle="primary" width={1} my={4} minWidth={128} data-cy="ContributeBtn">
-                        <FormattedMessage id="Contribute" defaultMessage="Contribute" />
+                        {tier.button ? tier.button : <FormattedMessage id="Contribute" defaultMessage="Contribute" />}
                       </StyledButton>
                     </Link>
                   )}

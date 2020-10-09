@@ -90,7 +90,6 @@ type Collective implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -101,7 +100,6 @@ type Collective implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -115,7 +113,8 @@ type Collective implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -298,6 +297,8 @@ type Collective implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -322,11 +323,11 @@ input CollectiveAttributesInputType {
   startsAt: String
   endsAt: String
   timezone: String
-  maxAmount: Int
   currency: String
   settings: JSON
   isIncognito: Boolean
   tags: [String]
+  contributionPolicy: String
 }
 
 """
@@ -348,7 +349,6 @@ input CollectiveInputType {
   startsAt: String
   endsAt: String
   timezone: String
-  maxAmount: Int
   currency: String
   image: String
   backgroundImage: String
@@ -366,6 +366,7 @@ input CollectiveInputType {
   lastName: String
   isIncognito: Boolean
   isActive: Boolean
+  contributionPolicy: String
 }
 
 """
@@ -387,7 +388,6 @@ interface CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -398,7 +398,6 @@ interface CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -412,7 +411,8 @@ interface CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
   isHost: Boolean
@@ -583,6 +583,12 @@ interface CollectiveInterface {
   ): PaginatedPaymentMethod
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
+  contributionPolicy: String
+
+  """
+  Categories set by Open Collective to help moderation.
+  """
+  categories: [String]!
 }
 
 """
@@ -923,6 +929,7 @@ enum ContributorRole {
   ATTENDEE
   FOLLOWER
   CONNECTED_COLLECTIVE
+  ACCOUNTANT
 }
 
 """
@@ -1005,7 +1012,6 @@ type Event implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -1016,7 +1022,6 @@ type Event implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -1030,7 +1035,8 @@ type Event implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -1213,6 +1219,8 @@ type Event implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -1437,7 +1445,6 @@ type Fund implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -1448,7 +1455,6 @@ type Fund implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -1462,7 +1468,8 @@ type Fund implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -1645,6 +1652,8 @@ type Fund implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -1945,10 +1954,15 @@ type Mutation {
     Force expense with paypal method to be paid manually
     """
     forceManual: Boolean
+
+    """
+    2FA code for if the host account has it turned on and the transaction is large.
+    """
+    twoFactorAuthenticatorCode: String
   ): ExpenseType
   markOrderAsPaid(id: Int!): OrderType
   markPendingOrderAsExpired(id: Int!): OrderType
-  createExpense(expense: ExpenseInputType!): ExpenseType
+  createExpense(expense: ExpenseInputType!): ExpenseType @deprecated(reason: "2020-09-17: Now using GQLV2 for that")
   editExpense(expense: ExpenseInputType!): ExpenseType
   deleteExpense(id: Int!): ExpenseType
   markExpenseAsUnpaid(id: Int!, processorFeeRefunded: Boolean!): ExpenseType
@@ -2390,13 +2404,16 @@ input OrderInputType {
 Possible statuses for an Order
 """
 enum OrderStatus {
-  PENDING
+  NEW
+  REQUIRE_CLIENT_CONFIRMATION
   PAID
+  ERROR
   ACTIVE
   CANCELLED
-  REJECTED
-  ERROR
+  PENDING
   EXPIRED
+  PLEDGED
+  REJECTED
 }
 
 """
@@ -2520,7 +2537,6 @@ type Organization implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -2531,7 +2547,6 @@ type Organization implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -2545,7 +2560,8 @@ type Organization implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -2728,6 +2744,8 @@ type Organization implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
   email: String
 }
 
@@ -2837,7 +2855,7 @@ type PaymentMethodType {
   To group multiple payment methods. Used for Gift Cards
   """
   batch: String
-  SourcePaymentMethodId: Int
+  SourcePaymentMethodId: Int @deprecated(reason: "2020-09-28: Not used")
   type: String
   data: JSON
   name: String
@@ -2894,6 +2912,7 @@ enum PayoutMethodTypeEnum {
   OTHER
   PAYPAL
   BANK_ACCOUNT
+  ACCOUNT_BALANCE
 }
 
 """
@@ -2932,7 +2951,6 @@ type Project implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -2943,7 +2961,6 @@ type Project implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -2957,7 +2974,8 @@ type Project implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -3140,6 +3158,8 @@ type Project implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
 }
 
 """
@@ -3171,7 +3191,7 @@ type Query {
     + dateTo for getting an invoice over a date range.
     """
     invoiceInputType: InvoiceInputType!
-  ): InvoiceType
+  ): InvoiceType @deprecated(reason: "2020-09-17: PDF service is now using the GQLV2 transactions endpoint")
   TransactionInvoice(
     """
     Slug of the transaction.
@@ -3341,6 +3361,7 @@ type Query {
   ): CollectiveSearchResults
   allCollectiveTags: [String]
   member(id: Int, CollectiveId: Int, MemberCollectiveId: Int, TierId: Int): Member
+    @deprecated(reason: "2020-09-08: This endpoint does not seems to be used anymore")
   allMembers(
     CollectiveId: Int
     collectiveSlug: String
@@ -3386,7 +3407,7 @@ type Query {
   """
   search(
     """
-    Fetch collectives related to this term based on name, description, tags, slug, mission, and location
+    Fetch collectives related to this term based on name, description, tags, slug, and location
     """
     term: String
 
@@ -3844,7 +3865,6 @@ type User implements CollectiveInterface {
   """
   hasLongDescription: Boolean
   expensePolicy: String
-  mission: String
   tags: [String]
 
   """
@@ -3855,7 +3875,6 @@ type User implements CollectiveInterface {
   startsAt: DateString
   endsAt: DateString
   timezone: String
-  maxAmount: Int
   hostFeePercent: Int
   platformFeePercent: Int
   currency: String
@@ -3869,7 +3888,8 @@ type User implements CollectiveInterface {
   Defines if a collective is pledged
   """
   isPledged: Boolean
-  data: JSON
+  data: JSON @deprecated(reason: "2020-10-08: This field is not provided anymore and will return an empty object")
+  githubContributors: JSON!
   slug: String
   path: String
 
@@ -4052,6 +4072,8 @@ type User implements CollectiveInterface {
   connectedAccounts: [ConnectedAccountType]
   plan: PlanType
   stats: CollectiveStatsType
+  contributionPolicy: String
+  categories: [String]!
   firstName: String @deprecated(reason: "2020-03-27: These field are now deprecated in favor of collective.name")
   lastName: String @deprecated(reason: "2020-03-27: These field are now deprecated in favor of collective.name")
   email: String
@@ -4106,4 +4128,5 @@ input UserInputType {
   website: String
   paypalEmail: String
   newsletterOptIn: Boolean
+  location: LocationInputType
 }

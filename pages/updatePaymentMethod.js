@@ -96,9 +96,11 @@ class UpdatePaymentPage extends React.Component {
         }
         const paymentMethod = stripeTokenToPaymentMethod(token);
         const res = await this.props.replaceCreditCard({
-          CollectiveId: this.props.LoggedInUser.collective.id,
-          ...paymentMethod,
-          id: parseInt(this.props.id),
+          variables: {
+            CollectiveId: this.props.LoggedInUser.collective.id,
+            ...paymentMethod,
+            id: parseInt(this.props.id),
+          },
         });
         const updatedCreditCard = res.data.replaceCreditCard;
 
@@ -108,7 +110,7 @@ class UpdatePaymentPage extends React.Component {
           this.handleSuccess();
         }
       } catch (e) {
-        const message = e.message.replace('GraphQL error: ', '');
+        const message = e.message;
         this.setState({ error: message, submitting: false, showCreditCardForm: false });
       }
     }

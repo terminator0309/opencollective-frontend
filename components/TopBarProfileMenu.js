@@ -1,5 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
+import { gql } from '@apollo/client';
+import { Query } from '@apollo/client/react/components';
 import { Plus } from '@styled-icons/boxicons-regular';
 import { ChevronDown } from '@styled-icons/boxicons-regular/ChevronDown';
 import { Settings } from '@styled-icons/feather/Settings';
@@ -8,6 +10,7 @@ import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import styled, { createGlobalStyle } from 'styled-components';
 
 import { formatCurrency } from '../lib/currency-utils';
+import { isPastEvent } from '../lib/events';
 import { getFromLocalStorage, LOCAL_STORAGE_KEYS } from '../lib/local-storage';
 import { capitalize } from '../lib/utils';
 import { Link } from '../server/pages';
@@ -25,6 +28,14 @@ import StyledLink from './StyledLink';
 import StyledRoundButton from './StyledRoundButton';
 import { P } from './Text';
 import { withUser } from './UserProvider';
+
+const memberInvitationsCountQuery = gql`
+  query MemberInvitationsCount($memberCollectiveId: Int!) {
+    memberInvitations(MemberCollectiveId: $memberCollectiveId) {
+      id
+    }
+  }
+`;
 
 const CollectiveListItem = styled(ListItem)`
   @media (hover: hover) {
@@ -186,6 +197,12 @@ class TopBarProfileMenu extends React.Component {
         return a.collective.slug.localeCompare(b.collective.slug);
       });
 
+    const events = memberships
+      .filter(m => m.collective.type === 'EVENT' && !isPastEvent(m.collective))
+      .sort((a, b) => {
+        return a.collective.slug.localeCompare(b.collective.slug);
+      });
+
     const funds = memberships
       .filter(m => m.collective.type === 'FUND')
       .sort((a, b) => {
@@ -229,6 +246,27 @@ class TopBarProfileMenu extends React.Component {
                   </StyledLink>
                 </Link>
               </ListItem>
+              <Query
+                query={memberInvitationsCountQuery}
+                variables={{ memberCollectiveId: LoggedInUser.CollectiveId }}
+                fetchPolicy="network-only"
+              >
+                {({ data, loading }) =>
+                  loading === false && data && data.memberInvitations && data.memberInvitations.length > 0 ? (
+                    <ListItem py={1}>
+                      <Link route="member-invitations" passHref>
+                        <StyledLink color="#494D52" fontSize="1.2rem" fontFamily="montserratlight, arial">
+                          <FormattedMessage
+                            id="menu.pendingInvitations"
+                            defaultMessage="Pending Invitations ({numberOfInvitations})"
+                            values={{ numberOfInvitations: data.memberInvitations.length }}
+                          />
+                        </StyledLink>
+                      </Link>
+                    </ListItem>
+                  ) : null
+                }
+              </Query>
               <ListItem py={1}>
                 <Link route="editCollective" params={{ slug: LoggedInUser.collective.slug }} passHref>
                   <StyledLink color="#494D52" fontSize="1.2rem" fontFamily="montserratlight, arial">
@@ -329,6 +367,28 @@ class TopBarProfileMenu extends React.Component {
                 </P>
               </Box>
             )}
+            {events.length > 0 && (
+              <div>
+                <Flex alignItems="center" mt={3}>
+                  <P
+                    color="#4E5052"
+                    fontFamily="montserratlight, arial"
+                    fontSize="1rem"
+                    fontWeight="600"
+                    letterSpacing="1px"
+                    pr={2}
+                    textTransform="uppercase"
+                    whiteSpace="nowrap"
+                  >
+                    <FormattedMessage id="events" defaultMessage="my events" />
+                  </P>
+                  <StyledHr flex="1" borderStyle="solid" borderColor="#DCDEE0" />
+                </Flex>
+                <Box as="ul" p={0} my={2}>
+                  {events.map(this.renderMembershipLine)}
+                </Box>
+              </div>
+            )}
             {funds.length > 0 && (
               <Fragment>
                 <Flex alignItems="center" mt={3}>
@@ -416,7 +476,9 @@ class TopBarProfileMenu extends React.Component {
           </P>
         </Hide>
         <Avatar collective={get(LoggedInUser, 'collective')} radius="3rem" mr={2} />
-        <ChevronDown color="#4E5052" size="1.5em" cursor="pointer" />
+        <Hide xs>
+          <ChevronDown color="#4E5052" size="1.5em" cursor="pointer" />
+        </Hide>
         {showProfileMenu && (
           <React.Fragment>
             <HideGlobalScroll />

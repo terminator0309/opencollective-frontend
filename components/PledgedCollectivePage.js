@@ -24,7 +24,7 @@ export const pledgedCollectivePageQuery = gql`
   query PledgedCollectivePage($id: Int!) {
     Collective(id: $id) {
       id
-      pledges: orders(status: PENDING) {
+      pledges: orders(status: PLEDGED) {
         id
         currency
         interval
@@ -100,7 +100,7 @@ const PledgedCollectivePage = ({ collective }) => {
           <H2 as="h1">{collective.name}</H2>
 
           <Box mb={4} mt={3}>
-            <StyledLink href={website} color="primary.500" fontSize="12px">
+            <StyledLink href={website} color="primary.500" fontSize="12px" openInNewTabNoFollow>
               <ExternalLinkAlt size="1em" /> {website}
             </StyledLink>
           </Box>

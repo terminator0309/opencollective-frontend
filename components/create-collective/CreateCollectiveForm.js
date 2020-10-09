@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import themeGet from '@styled-system/theme-get';
 import { Field, Form, Formik } from 'formik';
+import { trim } from 'lodash';
 import { withRouter } from 'next/router';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import slugify from 'slugify';
@@ -67,6 +68,10 @@ const messages = defineMessages({
     id: 'createCollective.form.error.slug',
     defaultMessage: 'Please use fewer than 30 characters',
   },
+  errorSlugHyphen: {
+    id: 'createCollective.form.error.slug.hyphen',
+    defaultMessage: 'Collective slug can not start nor end with hyphen',
+  },
 });
 
 const formatGithubRepoName = repoName => {
@@ -122,6 +127,9 @@ class CreateCollectiveForm extends React.Component {
       if (values.slug.length > 30) {
         errors.slug = intl.formatMessage(messages.errorSlug);
       }
+      if (values.slug !== trim(values.slug, '-')) {
+        errors.slug = intl.formatMessage(messages.errorSlugHyphen);
+      }
 
       if (values.description.length > 160) {
         errors.description = intl.formatMessage(messages.errorDescription);
@@ -173,7 +181,7 @@ class CreateCollectiveForm extends React.Component {
         {error && (
           <Flex alignItems="center" justifyContent="center">
             <MessageBox type="error" withIcon mb={[1, 3]} data-cy="ccf-error-message">
-              {error.replace('GraphQL error: ', 'Error: ')}
+              {error}
             </MessageBox>
           </Flex>
         )}
@@ -196,7 +204,7 @@ class CreateCollectiveForm extends React.Component {
                     strict: true,
                   };
 
-                  return slugify(value, slugOptions);
+                  return trim(slugify(value, slugOptions), '-');
                 };
 
                 const handleSlugChange = e => {

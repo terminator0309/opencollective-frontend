@@ -13,7 +13,18 @@ const ExpenseContainer = styled.div`
     `}
 `;
 
-const ExpensesList = ({ collective, host, expenses, isLoading, nbPlaceholders, isInverted, view }) => {
+const ExpensesList = ({
+  collective,
+  host,
+  usePreviewModal,
+  expenses,
+  isLoading,
+  nbPlaceholders,
+  isInverted,
+  view,
+  onDelete,
+  onProcess,
+}) => {
   expenses = !isLoading ? expenses : [...new Array(nbPlaceholders)];
 
   if (!expenses?.length) {
@@ -32,6 +43,9 @@ const ExpensesList = ({ collective, host, expenses, isLoading, nbPlaceholders, i
             host={host}
             showProcessActions
             view={view}
+            usePreviewModal={usePreviewModal}
+            onDelete={onDelete}
+            onProcess={onProcess}
           />
         </ExpenseContainer>
       ))}
@@ -47,6 +61,9 @@ ExpensesList.propTypes = {
   nbPlaceholders: PropTypes.number,
   host: PropTypes.object,
   view: PropTypes.oneOf(['public', 'admin']),
+  usePreviewModal: PropTypes.bool,
+  onDelete: PropTypes.func,
+  onProcess: PropTypes.func,
   collective: PropTypes.shape({
     slug: PropTypes.string.isRequired,
     parent: PropTypes.shape({

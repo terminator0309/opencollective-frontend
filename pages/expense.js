@@ -6,6 +6,7 @@ import memoizeOne from 'memoize-one';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 
 import { getCollectiveTypeForUrl } from '../lib/collective.lib';
+import { CollectiveType } from '../lib/constants/collectives';
 import expenseTypes from '../lib/constants/expenseTypes';
 import { formatErrorMessage, generateNotFoundError, getErrorFromGraphqlException } from '../lib/errors';
 import { API_V2_CONTEXT, gqlV2 } from '../lib/graphql/helpers';
@@ -85,6 +86,8 @@ const PrivateNoteLabel = () => {
 
 const PAGE_STATUS = { VIEW: 1, EDIT: 2, EDIT_SUMMARY: 3 };
 const SIDE_MARGIN_WIDTH = 'calc((100% - 1200px) / 2)';
+
+const { USER, ORGANIZATION } = CollectiveType;
 
 class ExpensePage extends React.Component {
   static getInitialProps({ query: { parentCollectiveSlug, collectiveSlug, ExpenseId, createSuccess } }) {
@@ -260,7 +263,14 @@ class ExpensePage extends React.Component {
     if (!loggedInAccount) {
       return [];
     } else {
-      const accountsAdminOf = get(loggedInAccount, 'adminMemberships.nodes', []).map(member => member.account);
+      const accountsAdminOf = get(loggedInAccount, 'adminMemberships.nodes', [])
+        .map(member => member.account)
+        .filter(
+          account =>
+            [USER, ORGANIZATION].includes(account.type) ||
+            // Same Host
+            (account.isActive && this.props.data?.account?.host?.id === account.host?.id),
+        );
       return [loggedInAccount, ...accountsAdminOf];
     }
   });
@@ -295,6 +305,15 @@ class ExpensePage extends React.Component {
     return this.setState(() => ({ status: PAGE_STATUS.EDIT, editedExpense: this.props.data.expense }));
   };
 
+  onDelete = async expense => {
+    const collective = expense.account;
+    return Router.replaceRoute('expenses', {
+      parentCollectiveSlug: collective.parent?.slug,
+      collectiveType: collective.parent ? getCollectiveTypeForUrl(collective) : undefined,
+      collectiveSlug: collective.slug,
+    });
+  };
+
   render() {
     const { collectiveSlug, data, loadingLoggedInUser, createSuccess, intl } = this.props;
     const { isRefetchingDataForUser, error, status, editedExpense, successMessageDismissed } = this.state;
@@ -318,6 +337,8 @@ class ExpensePage extends React.Component {
     const hasAttachedFiles = (isInvoice && canSeeInvoiceInfo) || expense?.attachedFiles?.length > 0;
     const showTaxFormMsg = includes(expense?.requiredLegalDocuments, 'US_TAX_FORM');
     const hasHeaderMsg = error || showTaxFormMsg;
+
+    const payoutProfiles = this.getPayoutProfiles(loggedInAccount);
 
     return (
       <Page collective={collective} {...this.getPageMetaData(expense)} withoutGlobalStyles>
@@ -352,13 +373,14 @@ class ExpensePage extends React.Component {
                   permissions={expense?.permissions}
                   onError={error => this.setState({ error })}
                   onEdit={this.onEditBtnClick}
+                  onDelete={this.onDelete}
                 />
               )}
             </Flex>
           </Container>
           <Box flex="1 1 650px" minWidth={300} maxWidth={792} mr={[null, 2, 3, 4, 5]} px={2} ref={this.expenseTopRef}>
             <H1 fontSize="24px" lineHeight="32px" mb={24} py={2}>
-              <FormattedMessage id="Expense.summary" defaultMessage="Expense summary" />
+              <FormattedMessage id="Summary" defaultMessage="Summary" />
             </H1>
             {error && (
               <MessageBox type="error" withIcon mb={4}>
@@ -369,7 +391,7 @@ class ExpensePage extends React.Component {
               <MessageBox type="warning" withIcon={true} mb={4}>
                 <FormattedMessage
                   id="expenseNeedsTaxFormMessage.msg"
-                  defaultMessage="We need your tax information before we can pay you. You will receive an email from HelloWorks saying Open Collective is requesting you fill out a form. This is required by the IRS (US tax agency) for everyone who invoices $600 or more per year. If you have not received the email within 24 hours, or you have any questions, please contact <I18nSupportLink></I18nSupportLink>. For more info, see our <Link>help docs about taxes</Link>."
+                  defaultMessage="We need your tax information before we can pay you. You will receive an email from HelloWorks saying Open Collective is requesting you fill out a form. This is required by the IRS (US tax agency) for everyone who invoices $600 or more per year. We also require one for grant recipients for our records. If you have not received the email within 24 hours, or you have any questions, please contact <I18nSupportLink></I18nSupportLink>. For more info, see our <Link>help docs about taxes</Link>."
                   values={{
                     I18nSupportLink,
                     Link: getI18nLink({
@@ -460,7 +482,7 @@ class ExpensePage extends React.Component {
                   loading={loadingLoggedInUser}
                   expense={editedExpense}
                   expensesTags={this.getSuggestedTags(collective)}
-                  payoutProfiles={this.getPayoutProfiles(loggedInAccount)}
+                  payoutProfiles={payoutProfiles}
                   onCancel={() => this.setState({ status: PAGE_STATUS.VIEW, editedExpense: null })}
                   validateOnChange
                   disableSubmitIfUntouched

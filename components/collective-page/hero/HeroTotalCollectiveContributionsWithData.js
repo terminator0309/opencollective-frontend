@@ -8,9 +8,9 @@ import FormattedMoneyAmount from '../../FormattedMoneyAmount';
 import { Box } from '../../Grid';
 import { P } from '../../Text';
 
-const totalCollectiveContributionsQuery = gql`
-  query TotalCollectiveContributions($id: Int) {
-    Collective(id: $id) {
+export const totalCollectiveContributionsQuery = gql`
+  query HeroTotalCollectiveContributions($slug: String!) {
+    Collective(slug: $slug) {
       id
       currency
       stats {
@@ -21,6 +21,10 @@ const totalCollectiveContributionsQuery = gql`
   }
 `;
 
+export const getTotalCollectiveContributionsQueryVariables = slug => {
+  return { slug };
+};
+
 const amountStyles = { fontSize: '20px', fontWeight: 'bold' };
 
 /**
@@ -29,7 +33,7 @@ const amountStyles = { fontSize: '20px', fontWeight: 'bold' };
  */
 const HeroTotalCollectiveContributionsWithData = ({ collective }) => {
   const { data, loading, error } = useQuery(totalCollectiveContributionsQuery, {
-    variables: { id: collective.id },
+    variables: getTotalCollectiveContributionsQueryVariables(collective.slug),
   });
 
   if (error || loading || !get(data, 'Collective.stats.totalAmountSpent')) {
@@ -49,7 +53,7 @@ const HeroTotalCollectiveContributionsWithData = ({ collective }) => {
 
 HeroTotalCollectiveContributionsWithData.propTypes = {
   collective: PropTypes.shape({
-    id: PropTypes.number,
+    slug: PropTypes.string,
   }),
 };
 

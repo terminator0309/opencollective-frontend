@@ -33,7 +33,7 @@ import StyledTooltip from '../../StyledTooltip';
 import { H3, P, Span } from '../../Text';
 import { editAccountSettingsMutation } from '../mutations';
 
-const getSettingsQuery = gqlV2/* GraphQL */ `
+export const getSettingsQuery = gqlV2/* GraphQL */ `
   query GetSettingsForEditCollectivePage($slug: String!) {
     account(slug: $slug) {
       id
@@ -145,7 +145,6 @@ const CollectiveSectionEntry = ({
           const restrictedTo = value === 'ADMIN' ? ['ADMIN'] : [];
           onSectionToggle(section, isEnabled, restrictedTo);
         }}
-        menuPortalTarget={document.body}
         formatOptionLabel={option => <Span fontSize="11px">{option.label}</Span>}
       />
       {/**
@@ -208,8 +207,7 @@ const loadSectionsForCollective = collective => {
   const collectiveSections = get(collective, 'settings.collectivePage.sections');
   let defaultSections = getDefaultSectionsForCollective(collective.type, collective.isActive);
 
-  // Funds MVP, to refactor
-  if (collective.settings?.fund === true) {
+  if (collective.type === CollectiveType.FUND) {
     defaultSections = difference(defaultSections, [Sections.GOALS, Sections.CONVERSATIONS]);
   }
 

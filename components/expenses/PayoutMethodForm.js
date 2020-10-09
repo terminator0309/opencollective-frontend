@@ -83,6 +83,7 @@ const PayoutMethodForm = ({ payoutMethod, fieldsPrefix, host }) => {
               type="email"
               error={formatFormErrorMessage(intl, meta.error)}
               label={formatMessage(msg.email)}
+              labelFontSize="13px"
               disabled={!isNew}
               required
             >
@@ -99,6 +100,7 @@ const PayoutMethodForm = ({ payoutMethod, fieldsPrefix, host }) => {
               type="email"
               error={formatFormErrorMessage(intl, meta.error)}
               label={formatMessage(msg.content)}
+              labelFontSize="13px"
               disabled={!isNew}
               data-cy="payout-other-info"
               required
@@ -114,7 +116,9 @@ const PayoutMethodForm = ({ payoutMethod, fieldsPrefix, host }) => {
       {isNew && (
         <Box mt={3}>
           <Field name={getFieldName('isSaved')}>
-            {({ field }) => <StyledCheckbox label={formatMessage(msg.savePayout)} checked={field.value} {...field} />}
+            {({ field }) => (
+              <StyledCheckbox label={formatMessage(msg.savePayout)} fontSize="13px" checked={field.value} {...field} />
+            )}
           </Field>
         </Box>
       )}
@@ -125,9 +129,6 @@ const PayoutMethodForm = ({ payoutMethod, fieldsPrefix, host }) => {
 PayoutMethodForm.propTypes = {
   host: PropTypes.shape({
     slug: PropTypes.string.isRequired,
-    transferwise: PropTypes.shape({
-      availableCurrencies: PropTypes.arrayOf(PropTypes.string),
-    }),
   }),
   /** Set this to nil to create a new one */
   payoutMethod: PropTypes.shape({

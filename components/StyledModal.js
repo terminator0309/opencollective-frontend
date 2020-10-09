@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { Times } from '@styled-icons/fa-solid/Times';
 import themeGet from '@styled-system/theme-get';
 import { createPortal } from 'react-dom';
-import styled, { createGlobalStyle } from 'styled-components';
-import { background, space } from 'styled-system';
+import styled, { createGlobalStyle, css } from 'styled-components';
+import { background, margin, overflow, space } from 'styled-system';
 
 import Avatar from './Avatar';
 import Container from './Container';
@@ -35,9 +35,10 @@ const Modal = styled(Container).attrs(props => ({
 
   ${space};
   ${background};
+  ${overflow}
 
   @media (max-width: ${themeGet('breakpoints.0')}) {
-    height: 90vh;
+    max-height: 90vh;
   }
 `;
 
@@ -91,10 +92,16 @@ ModalBody.propTypes = {
 };
 
 const Divider = styled.div`
-  margin: 2rem 0;
+  ${margin}
   width: 100%;
   height: 1px;
   background-color: #e1e4e6;
+  ${props =>
+    props.isFullWidth &&
+    css`
+      margin-left: -20px;
+      width: calc(100% + 40px);
+    `}
 `;
 
 const CloseIcon = styled(Times)`
@@ -143,15 +150,21 @@ CollectiveModalHeader.propTypes = {
 
 CollectiveModalHeader.displayName = 'Header';
 
-export const ModalFooter = ({ children, ...props }) => (
+export const ModalFooter = ({ children, isFullWidth, dividerMargin, ...props }) => (
   <Container {...props}>
-    <Divider />
+    <Divider margin={dividerMargin} isFullWidth={isFullWidth} />
     {children}
   </Container>
 );
 
 ModalFooter.propTypes = {
   children: PropTypes.node,
+  isFullWidth: PropTypes.bool,
+  dividerMargin: PropTypes.string,
+};
+
+ModalFooter.defaultProps = {
+  dividerMargin: '2rem 0',
 };
 
 /**

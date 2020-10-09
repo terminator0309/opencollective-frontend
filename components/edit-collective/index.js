@@ -4,6 +4,7 @@ import { defineMessages, injectIntl } from 'react-intl';
 
 import { defaultBackgroundImage } from '../../lib/constants/collectives';
 import { getErrorFromGraphqlException } from '../../lib/errors';
+import { Router } from '../../server/pages';
 
 import Body from '../Body';
 import CollectiveNavbar from '../CollectiveNavbar';
@@ -11,6 +12,7 @@ import Footer from '../Footer';
 import Header from '../Header';
 import NotificationBar from '../NotificationBar';
 import SignInOrJoinFree from '../SignInOrJoinFree';
+import { withUser } from '../UserProvider';
 
 import Form from './Form';
 
@@ -18,6 +20,7 @@ class EditCollective extends React.Component {
   static propTypes = {
     collective: PropTypes.object.isRequired, // passed from Page with addCollectiveToEditData
     LoggedInUser: PropTypes.object.isRequired, // passed from Page with withUser
+    refetchLoggedInUser: PropTypes.func.isRequired, // passed from Page with withUser
     editCollective: PropTypes.func.isRequired, // passed from Page with addEditCollectiveMutation
     intl: PropTypes.object.isRequired, // from injectIntl
   };
@@ -58,6 +61,7 @@ class EditCollective extends React.Component {
 
     collective.settings = {
       ...this.props.collective.settings,
+      ...collective.settings,
       apply: collective.application,
       tos: collective.tos,
     };
@@ -68,11 +72,22 @@ class EditCollective extends React.Component {
     this.setState({ status: 'loading' });
 
     try {
-      await this.props.editCollective(collective);
+      const response = await this.props.editCollective(collective);
+      const updatedCollective = response.data.editCollective;
       this.setState({ status: 'saved', result: { error: null } });
-      setTimeout(() => {
-        this.setState({ status: null });
-      }, 3000);
+      const currentSlug = Router.router.query.eventSlug ?? Router.router.query.slug;
+      if (currentSlug !== updatedCollective.slug) {
+        Router.replaceRoute('editCollective', {
+          ...Router.router.query,
+          slug: updatedCollective.slug,
+        });
+
+        await this.props.refetchLoggedInUser();
+      } else {
+        setTimeout(() => {
+          this.setState({ status: null });
+        }, 3000);
+      }
     } catch (err) {
       const errorMsg = getErrorFromGraphqlException(err).message;
       this.setState({ status: null, result: { error: errorMsg } });
@@ -127,7 +142,7 @@ class EditCollective extends React.Component {
         <Body>
           {collective.isArchived && (
             <NotificationBar
-              status={notification.status || status}
+              status={notification.status}
               title={notification.title}
               description={notification.description}
             />
@@ -168,4 +183,4 @@ class EditCollective extends React.Component {
   }
 }
 
-export default injectIntl(EditCollective);
+export default injectIntl(withUser(EditCollective));

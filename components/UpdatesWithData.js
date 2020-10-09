@@ -17,7 +17,6 @@ class UpdatesWithData extends React.Component {
     limit: PropTypes.number,
     compact: PropTypes.bool, // compact view for homepage (can't edit update, don't show header)
     defaultAction: PropTypes.string, // "new" to open the new update form by default
-    includeHostedCollectives: PropTypes.bool,
     LoggedInUser: PropTypes.object,
     data: PropTypes.object,
     fetchMore: PropTypes.func,
@@ -40,7 +39,7 @@ class UpdatesWithData extends React.Component {
   }
 
   render() {
-    const { data, LoggedInUser, collective, compact, includeHostedCollectives } = this.props;
+    const { data, LoggedInUser, collective, compact } = this.props;
 
     if (data.error) {
       return <Error message={data.error.message} />;
@@ -49,30 +48,16 @@ class UpdatesWithData extends React.Component {
     const updates = data.allUpdates;
     return (
       <div className="UpdatesContainer">
-        <style jsx>
-          {`
-            .FullPage .adminActions {
-              text-transform: uppercase;
-              font-size: 1.3rem;
-              font-weight: 600;
-              letter-spacing: 0.05rem;
-              margin-bottom: 3rem;
-            }
-          `}
-        </style>
-
         {!compact && (
-          <div className="FullPage">
-            <SectionTitle
-              title={<FormattedMessage id="updates" defaultMessage="Updates" />}
-              subtitle={
-                <FormattedMessage
-                  id="section.updates.subtitle"
-                  defaultMessage="Stay up to dates with our latest activities and progress."
-                />
-              }
-            />
-          </div>
+          <SectionTitle
+            title={<FormattedMessage id="updates" defaultMessage="Updates" />}
+            subtitle={
+              <FormattedMessage
+                id="section.updates.subtitle"
+                defaultMessage="Stay up to dates with our latest activities and progress."
+              />
+            }
+          />
         )}
         {LoggedInUser?.canEditCollective(collective) && (
           <Flex justifyContent="center">
@@ -90,7 +75,6 @@ class UpdatesWithData extends React.Component {
             editable={!compact}
             fetchMore={this.props.fetchMore}
             LoggedInUser={LoggedInUser}
-            includeHostedCollectives={includeHostedCollectives}
           />
         </Box>
       </div>
@@ -99,13 +83,8 @@ class UpdatesWithData extends React.Component {
 }
 
 const updatesQuery = gql`
-  query Updates($CollectiveId: Int!, $limit: Int, $offset: Int, $includeHostedCollectives: Boolean) {
-    allUpdates(
-      CollectiveId: $CollectiveId
-      limit: $limit
-      offset: $offset
-      includeHostedCollectives: $includeHostedCollectives
-    ) {
+  query Updates($CollectiveId: Int!, $limit: Int, $offset: Int) {
+    allUpdates(CollectiveId: $CollectiveId, limit: $limit, offset: $offset) {
       id
       slug
       title

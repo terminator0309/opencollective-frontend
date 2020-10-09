@@ -9,10 +9,10 @@ import { generateNotFoundError } from '../lib/errors';
 
 import CollectivePageContent from '../components/collective-page';
 import CollectiveNotificationBar from '../components/collective-page/CollectiveNotificationBar';
-import { collectivePageQuery } from '../components/collective-page/graphql/queries';
+import { preloadCollectivePageGraphlQueries } from '../components/collective-page/graphql/preload';
+import { collectivePageQuery, getCollectivePageQueryVariables } from '../components/collective-page/graphql/queries';
 import CollectiveThemeProvider from '../components/CollectiveThemeProvider';
 import Container from '../components/Container';
-import { MAX_CONTRIBUTORS_PER_CONTRIBUTE_CARD } from '../components/contribute-cards/Contribute';
 import ErrorPage from '../components/ErrorPage';
 import Loading from '../components/Loading';
 import OnboardingModal from '../components/onboarding-modal/OnboardingModal';
@@ -46,12 +46,21 @@ const GlobalStyles = createGlobalStyle`
  * to render `components/collective-page` with everything needed.
  */
 class CollectivePage extends React.Component {
-  static getInitialProps({ req, res, query: { slug, status, step, mode } }) {
+  static async getInitialProps({ client, req, res, query: { slug, status, step, mode } }) {
     if (res && req && (req.language || req.locale === 'en')) {
       res.set('Cache-Control', 'public, s-maxage=300');
     }
 
-    return { slug, status, step, mode };
+    let skipDataFromTree = false;
+
+    // If on server side
+    if (req) {
+      req.noStyledJsx = true;
+      await preloadCollectivePageGraphlQueries(slug, client);
+      skipDataFromTree = true;
+    }
+
+    return { slug, status, step, mode, skipDataFromTree };
   }
 
   static propTypes = {
@@ -111,17 +120,23 @@ class CollectivePage extends React.Component {
   }
 
   getPageMetaData(collective) {
+    const defaultImage = '/static/images/defaultBackgroundImage.png';
     if (collective) {
       return {
         title: collective.name,
         description: collective.description,
         twitterHandle: collective.twitterHandle || get(collective, 'parentCollective.twitterHandle'),
-        image: collective.image || get(collective, 'parentCollective.image'),
+        image:
+          collective.backgroundImageUrl ||
+          get(collective, 'parentCollective.backgroundImageUrl') ||
+          collective.image ||
+          get(collective, 'parentCollective.image') ||
+          defaultImage,
       };
     } else {
       return {
         title: 'Collective',
-        image: '/static/images/defaultBackgroundImage.png',
+        image: defaultImage,
       };
     }
   }
@@ -208,13 +223,6 @@ class CollectivePage extends React.Component {
     );
   }
 }
-
-export const getCollectivePageQueryVariables = collectiveSlug => {
-  return {
-    slug: collectiveSlug,
-    nbContributorsPerContributeCard: MAX_CONTRIBUTORS_PER_CONTRIBUTE_CARD,
-  };
-};
 
 const addCollectivePageData = graphql(collectivePageQuery, {
   options: props => ({

@@ -115,7 +115,9 @@ export const makeStyledSelect = SelectComponent => styled(SelectComponent).attrs
     error,
     controlStyles,
     isSearchable,
+    menuPortalTarget,
   }) => ({
+    menuPortalTarget: menuPortalTarget === null || typeof document === 'undefined' ? undefined : document.body,
     isDisabled: disabled || isDisabled,
     placeholder: placeholder || intl.formatMessage(Messages.placeholder),
     loadingMessage: () => intl.formatMessage(Messages.loading),
@@ -218,6 +220,8 @@ StyledSelect.propTypes = {
   hideDropdownIndicator: PropTypes.bool,
   /** If true, options list will not be displayed */
   hideMenu: PropTypes.bool,
+  /** Default placement of the menu in relation to the control */
+  menuPlacement: PropTypes.oneOf(['bottom', 'top', 'auto']),
   /** Displays a red border when truthy */
   error: PropTypes.any,
   /** @ignore from injectIntl */
@@ -225,6 +229,8 @@ StyledSelect.propTypes = {
   /** Default option */
   defaultValue: PropTypes.object,
   controlStyles: PropTypes.object,
+  /** To render menu in a portal */
+  menuPortalTarget: PropTypes.any,
   // Styled-system
   ...propTypes.typography,
   ...propTypes.layout,

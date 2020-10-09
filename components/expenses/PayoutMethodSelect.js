@@ -6,6 +6,7 @@ import { get, groupBy, truncate } from 'lodash';
 import memoizeOne from 'memoize-one';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 
+import { AccountTypesWithHost } from '../../lib/constants/collectives';
 import { PayoutMethodType } from '../../lib/constants/payout-method';
 import { API_V2_CONTEXT, gqlV2 } from '../../lib/graphql/helpers';
 import i18nPayoutMethodType from '../../lib/i18n/payout-method-type';
@@ -40,6 +41,13 @@ const newPayoutMethodMsg = defineMessages({
 
 const MAX_PAYOUT_OPTION_DATA_LENGTH = 20;
 
+const payoutMethodLabels = defineMessages({
+  accountBalance: {
+    id: 'PayoutMethod.AccountBalance',
+    defaultMessage: 'Open Collective (Account Balance)',
+  },
+});
+
 /**
  * An overset of `StyledSelect` specialized for payout methods. Accepts all the props
  * from `StyledSelect`.
@@ -70,11 +78,17 @@ class PayoutMethodSelect extends React.Component {
     /** The Collective paying the expense */
     collective: PropTypes.shape({
       host: PropTypes.shape({
-        transferwise: PropTypes.shape({
-          availableCurrencies: PropTypes.arrayOf(PropTypes.string),
-        }),
+        id: PropTypes.string,
+        connectedAccounts: PropTypes.arrayOf(PropTypes.shape({ service: PropTypes.string })),
       }),
     }).isRequired,
+    /** The Acccount being paid with the expense */
+    payee: PropTypes.shape({
+      type: PropTypes.string,
+      host: PropTypes.shape({
+        id: PropTypes.string,
+      }),
+    }),
     onChange: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
   };
@@ -85,6 +99,8 @@ class PayoutMethodSelect extends React.Component {
     if (payoutMethod.id) {
       if (payoutMethod.name) {
         return payoutMethod.name;
+      } else if (payoutMethod.type === PayoutMethodType.ACCOUNT_BALANCE) {
+        return this.props.intl.formatMessage(payoutMethodLabels.accountBalance);
       } else if (payoutMethod.type === PayoutMethodType.PAYPAL) {
         return `PayPal - ${get(payoutMethod.data, 'email')}`;
       } else if (payoutMethod.type === PayoutMethodType.BANK_ACCOUNT) {
@@ -152,7 +168,7 @@ class PayoutMethodSelect extends React.Component {
     return (
       <Flex justifyContent="space-between" alignItems="center">
         <Span fontSize={isMenu ? '13px' : '14px'}>{this.getPayoutMethodLabel(value)}</Span>
-        {isMenu && value.id && this.props.onRemove && (
+        {isMenu && value.id && value.type !== PayoutMethodType.ACCOUNT_BALANCE && this.props.onRemove && (
           <StyledRoundButton
             size={20}
             ml={2}
@@ -179,15 +195,26 @@ class PayoutMethodSelect extends React.Component {
 
   getOptions = memoizeOne(payoutMethods => {
     const groupedPms = groupBy(payoutMethods, 'type');
-    const pmTypes = Object.values(PayoutMethodType).filter(type => {
-      if (type === PayoutMethodType.BANK_ACCOUNT && !this.props.collective.host?.transferwise) {
-        return false;
-      } else if (type === PayoutMethodType.PAYPAL && this.props.collective.host?.settings?.disablePaypalPayouts) {
-        return false;
-      } else {
-        return true;
-      }
-    });
+    const payeeIsCollectiveFamilyType =
+      this.props.payee &&
+      AccountTypesWithHost.includes(this.props.payee.type) &&
+      this.props.collective.host?.supportedPayoutMethods?.includes(PayoutMethodType.ACCOUNT_BALANCE);
+
+    // If the Account is of the "Collective" family, account balance should be the only option
+    const pmTypes = payeeIsCollectiveFamilyType
+      ? [PayoutMethodType.ACCOUNT_BALANCE]
+      : Object.values(PayoutMethodType).filter(type => {
+          // Account Balance only on Same Host
+          if (
+            type === PayoutMethodType.ACCOUNT_BALANCE &&
+            this.props.collective.host?.supportedPayoutMethods?.includes(PayoutMethodType.ACCOUNT_BALANCE) &&
+            this.props.payee?.host?.id != this.props.collective.host?.id
+          ) {
+            return false;
+          } else {
+            return this.props.collective.host?.supportedPayoutMethods?.includes(type);
+          }
+        });
 
     return pmTypes.map(pmType => ({
       label: i18nPayoutMethodType(this.props.intl, pmType),
@@ -195,12 +222,14 @@ class PayoutMethodSelect extends React.Component {
         // Add existing payout methods for this type
         ...get(groupedPms, pmType, []).map(this.getOptionFromPayoutMethod),
         // Add "+ Create new ..." for this payment type
-        this.getOptionFromPayoutMethod({
-          type: pmType,
-          isSaved: true,
-          data: this.getDefaultData(pmType),
-        }),
-      ],
+        pmType !== PayoutMethodType.ACCOUNT_BALANCE
+          ? this.getOptionFromPayoutMethod({
+              type: pmType,
+              isSaved: true,
+              data: this.getDefaultData(pmType),
+            })
+          : null,
+      ].filter(option => option !== null),
     }));
   });
 

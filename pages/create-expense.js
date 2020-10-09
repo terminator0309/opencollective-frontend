@@ -8,6 +8,8 @@ import { FormattedMessage, injectIntl } from 'react-intl';
 
 import hasFeature, { FEATURES } from '../lib/allowed-features';
 import { getCollectiveTypeForUrl } from '../lib/collective.lib';
+import { CollectiveType } from '../lib/constants/collectives';
+import expenseTypes from '../lib/constants/expenseTypes';
 import { formatErrorMessage, generateNotFoundError, getErrorFromGraphqlException } from '../lib/errors';
 import FormPersister from '../lib/form-persister';
 import { API_V2_CONTEXT, gqlV2 } from '../lib/graphql/helpers';
@@ -38,6 +40,8 @@ import { H1 } from '../components/Text';
 import { withUser } from '../components/UserProvider';
 
 const STEPS = { FORM: 'FORM', SUMMARY: 'summary' };
+
+const { USER, ORGANIZATION } = CollectiveType;
 
 class CreateExpensePage extends React.Component {
   static getInitialProps({ query: { collectiveSlug, parentCollectiveSlug } }) {
@@ -71,6 +75,7 @@ class CreateExpensePage extends React.Component {
         type: PropTypes.string.isRequired,
         twitterHandle: PropTypes.string,
         imageUrl: PropTypes.string,
+        isArchived: PropTypes.bool,
         expensesTags: PropTypes.arrayOf(
           PropTypes.shape({
             id: PropTypes.string.isRequired,
@@ -200,7 +205,14 @@ class CreateExpensePage extends React.Component {
     if (!loggedInAccount) {
       return [];
     } else {
-      const accountsAdminOf = get(loggedInAccount, 'adminMemberships.nodes', []).map(member => member.account);
+      const accountsAdminOf = get(loggedInAccount, 'adminMemberships.nodes', [])
+        .map(member => member.account)
+        .filter(
+          account =>
+            [USER, ORGANIZATION].includes(account.type) ||
+            // Same Host
+            (account.isActive && this.props.data?.account?.host?.id === account.host?.id),
+        );
       return [loggedInAccount, ...accountsAdminOf];
     }
   });
@@ -216,6 +228,8 @@ class CreateExpensePage extends React.Component {
         return <ErrorPage error={generateNotFoundError(collectiveSlug)} log={false} />;
       } else if (!hasFeature(data.account, FEATURES.RECEIVE_EXPENSES)) {
         return <PageFeatureNotSupported />;
+      } else if (data.account.isArchived) {
+        return <PageFeatureNotSupported showContactSupportLink={false} />;
       }
     }
 
@@ -223,24 +237,31 @@ class CreateExpensePage extends React.Component {
     const host = collective && collective.host;
     const loggedInAccount = data && data.loggedInAccount;
 
+    const payoutProfiles = this.getPayoutProfiles(loggedInAccount);
+
     return (
       <Page collective={collective} {...this.getPageMetaData(collective)} withoutGlobalStyles>
         <React.Fragment>
           <CollectiveNavbar collective={collective} isLoading={!collective} />
           <Container position="relative" minHeight={[null, 800]} ref={this.formTopRef}>
             {!loadingLoggedInUser && !LoggedInUser && (
-              <ContainerOverlay p={2} top="0" position={['fixed', null, 'absolute']}>
+              <ContainerOverlay
+                py={[2, null, 6]}
+                top="0"
+                position={['fixed', null, 'absolute']}
+                justifyContent={['center', null, 'flex-start']}
+              >
                 <SignInOrJoinFree routes={{ join: `/create-account?next=${encodeURIComponent(router.asPath)}` }} />
               </ContainerOverlay>
             )}
             <Box maxWidth={1242} m="0 auto" px={[2, 3, 4]} py={[4, 5]}>
-              <Flex justifyContent="space-between" flexWrap="wrap">
-                <Box flex="1 1 500px" minWidth={300} maxWidth={792} mr={[0, 3, 5]} mb={5}>
+              <Flex justifyContent="space-between" flexDirection={['column', 'row']}>
+                <Box minWidth={300} maxWidth={['100%', null, null, 728]} mr={[0, 3, 5]} mb={5} flexGrow="1">
                   <H1 fontSize="24px" lineHeight="32px" mb={24} py={2}>
                     {step === STEPS.FORM ? (
                       <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
                     ) : (
-                      <FormattedMessage id="Expense.summary" defaultMessage="Expense summary" />
+                      <FormattedMessage id="Summary" defaultMessage="Summary" />
                     )}
                   </H1>
                   {data.loading || loadingLoggedInUser ? (
@@ -255,7 +276,7 @@ class CreateExpensePage extends React.Component {
                           onSubmit={this.onFormSubmit}
                           expense={this.state.expense}
                           expensesTags={this.getSuggestedTags(collective)}
-                          payoutProfiles={this.getPayoutProfiles(loggedInAccount)}
+                          payoutProfiles={payoutProfiles}
                           formPersister={this.state.formPersister}
                           shouldLoadValuesFromPersister={this.state.isInitialForm}
                           autoFocusTitle
@@ -305,7 +326,11 @@ class CreateExpensePage extends React.Component {
                                 loading={this.state.isSubmitting}
                                 minWidth={175}
                               >
-                                <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
+                                {this.state.expense?.type === expenseTypes.FUNDING_REQUEST ? (
+                                  <FormattedMessage id="ExpenseForm.SubmitRequest" defaultMessage="Submit request" />
+                                ) : (
+                                  <FormattedMessage id="ExpenseForm.Submit" defaultMessage="Submit expense" />
+                                )}
                               </StyledButton>
                             </Flex>
                           </Box>
@@ -314,7 +339,7 @@ class CreateExpensePage extends React.Component {
                     </Box>
                   )}
                 </Box>
-                <Box minWidth={270} width={['100%', null, null, 275]} mt={70}>
+                <Box maxWidth={['100%', 210, null, 275]} mt={70}>
                   <ExpenseInfoSidebar isLoading={data.loading} collective={collective} host={host} />
                 </Box>
               </Flex>
@@ -335,6 +360,7 @@ const hostFieldsFragment = gqlV2/* GraphQL */ `
     type
     expensePolicy
     settings
+    currency
     location {
       address
       country
@@ -342,6 +368,7 @@ const hostFieldsFragment = gqlV2/* GraphQL */ `
     transferwise {
       availableCurrencies
     }
+    supportedPayoutMethods
   }
 `;
 
@@ -357,6 +384,7 @@ const createExpensePageQuery = gqlV2/* GraphQL */ `
       imageUrl
       twitterHandle
       currency
+      isArchived
       expensePolicy
       expensesTags {
         id

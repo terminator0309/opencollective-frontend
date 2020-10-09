@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { includes } from 'lodash';
 import { FormattedDate, FormattedMessage } from 'react-intl';
-import styled from 'styled-components';
 
 import expenseStatus from '../../lib/constants/expense-status';
 import expenseTypes from '../../lib/constants/expenseTypes';
@@ -12,21 +11,18 @@ import Avatar from '../Avatar';
 import Container from '../Container';
 import FormattedMoneyAmount, { DEFAULT_AMOUNT_STYLES } from '../FormattedMoneyAmount';
 import { Box, Flex } from '../Grid';
-import PrivateInfoIcon from '../icons/PrivateInfoIcon';
+import HTMLContent from '../HTMLContent';
 import LinkCollective from '../LinkCollective';
 import LoadingPlaceholder from '../LoadingPlaceholder';
-import LocationAddress from '../LocationAddress';
 import StyledCard from '../StyledCard';
 import StyledHr from '../StyledHr';
-import StyledLink from '../StyledLink';
 import { H4, P, Span } from '../Text';
 import UploadedFilePreview from '../UploadedFilePreview';
 
 import ExpenseItemsTotalAmount from './ExpenseItemsTotalAmount';
+import ExpensePayeeDetails from './ExpensePayeeDetails';
 import ExpenseStatusTag from './ExpenseStatusTag';
 import ExpenseTags from './ExpenseTags';
-import PayoutMethodData from './PayoutMethodData';
-import PayoutMethodTypeWithIcon from './PayoutMethodTypeWithIcon';
 import ProcessExpenseButtons, { hasProcessButtons } from './ProcessExpenseButtons';
 
 const CreatedByUserLink = ({ account }) => {
@@ -43,23 +39,6 @@ CreatedByUserLink.propTypes = {
   account: PropTypes.object,
 };
 
-const PrivateInfoColumn = styled(Box).attrs({ mx: [0, '8px'], flexBasis: [0, '200px'] })`
-  border-top: 1px solid #e8e9eb;
-  padding-top: 16px;
-  margin-top: 16px;
-  flex: 1 1;
-  min-width: 150px;
-`;
-
-const PrivateInfoColumnHeader = styled(H4).attrs({
-  fontSize: '10px',
-  fontWeight: 'bold',
-  textTransform: 'uppercase',
-  color: 'black.500',
-  mb: 2,
-  letterSpacing: 0,
-})``;
-
 /**
  * Last step of the create expense flow, shows the summary of the expense with
  * the ability to submit it.
@@ -75,15 +54,19 @@ const ExpenseSummary = ({
   borderless,
   ...props
 }) => {
-  const { payee, createdByAccount, payeeLocation } = expense || {};
+  const { createdByAccount } = expense || {};
   const isReceipt = expense?.type === expenseTypes.RECEIPT;
-  const isInvoice = expense?.type === expenseTypes.INVOICE;
+  const isFundingRequest = expense?.type === expenseTypes.FUNDING_REQUEST;
   const existsInAPI = expense && (expense.id || expense.legacyId);
   const showProcessButtons = showProcessActions && existsInAPI && collective && hasProcessButtons(permissions);
 
   return (
     <StyledCard p={borderless ? 0 : [16, 24, 32]} borderStyle={borderless ? 'none' : 'solid'} {...props}>
-      <Flex justifyContent="space-between" alignItems="center">
+      <Flex
+        flexDirection={['column-reverse', 'row']}
+        alignItems={['flex-start', 'center']}
+        justifyContent="space-between"
+      >
         <H4 my={2} mr={2} fontWeight="500">
           {isLoading ? <LoadingPlaceholder height={32} minWidth={250} /> : expense.description}
         </H4>
@@ -126,6 +109,17 @@ const ExpenseSummary = ({
           </React.Fragment>
         )}
       </Flex>
+      {isFundingRequest && expense.longDescription && (
+        <Fragment>
+          <Flex alignItems="center" mt={4}>
+            <Span fontWeight="bold" fontSize="16px">
+              <FormattedMessage id="Expense.RequestDescription" defaultMessage="Request Description" />
+            </Span>
+            <StyledHr flex="1 1" borderColor="black.300" ml={2} />
+          </Flex>
+          <P mt={4}>{expense.longDescription}</P>
+        </Fragment>
+      )}
       <Flex my={4} alignItems="center">
         {isLoading ? (
           <LoadingPlaceholder height={20} maxWidth={150} />
@@ -133,6 +127,8 @@ const ExpenseSummary = ({
           <Span fontWeight="bold" fontSize="16px">
             {isReceipt ? (
               <FormattedMessage id="Expense.AttachedReceipts" defaultMessage="Attached receipts" />
+            ) : isFundingRequest ? (
+              <FormattedMessage id="Expense.RequestDetails" defaultMessage="Request Details" />
             ) : (
               <FormattedMessage id="Expense.InvoiceItems" defaultMessage="Invoice items" />
             )}
@@ -158,25 +154,41 @@ const ExpenseSummary = ({
                     />
                   </Box>
                 )}
-                <Flex justifyContent="space-between" alignItems="flex-start" flex="1">
-                  <Flex flexDirection="column" justifyContent="center">
-                    <Span color="black.900" fontWeight="500">
-                      {attachment.description || (
-                        <Span color="black.500" fontStyle="italic">
-                          <FormattedMessage id="NoDescription" defaultMessage="No description provided" />
+                <Flex justifyContent="space-between" alignItems="baseline" flex="1">
+                  <Flex flexDirection="column" justifyContent="center" flexGrow="1">
+                    {attachment.description ? (
+                      isFundingRequest ? (
+                        <HTMLContent
+                          content={attachment.description}
+                          fontSize="12px"
+                          data-cy="comment-body"
+                          sanitize
+                          collapsable
+                          color="black.900"
+                          fontWeight="500"
+                        />
+                      ) : (
+                        <Span as="div" color="black.900" fontWeight="500">
+                          {attachment.description}
                         </Span>
-                      )}
-                    </Span>
-                    <Span mt={1} fontSize="12px" color="black.500">
-                      <FormattedMessage
-                        id="withColon"
-                        defaultMessage="{item}:"
-                        values={{
-                          item: <FormattedMessage id="expense.incurredAt" defaultMessage="Date" />,
-                        }}
-                      />{' '}
-                      <FormattedDate value={attachment.incurredAt} />
-                    </Span>
+                      )
+                    ) : (
+                      <Span color="black.500" fontStyle="italic">
+                        <FormattedMessage id="NoDescription" defaultMessage="No description provided" />
+                      </Span>
+                    )}
+                    {!isFundingRequest && (
+                      <Span mt={1} fontSize="12px" color="black.500">
+                        <FormattedMessage
+                          id="withColon"
+                          defaultMessage="{item}:"
+                          values={{
+                            item: <FormattedMessage id="expense.incurredAt" defaultMessage="Date" />,
+                          }}
+                        />{' '}
+                        <FormattedDate value={attachment.incurredAt} />
+                      </Span>
+                    )}
                   </Flex>
                   <P fontSize={15} color="black.600" mt={2} textAlign="right" ml={3}>
                     <FormattedMoneyAmount
@@ -205,90 +217,7 @@ const ExpenseSummary = ({
           )}
         </Flex>
       </Flex>
-
-      {isLoading ? (
-        <LoadingPlaceholder height={150} mt={3} />
-      ) : (
-        <Flex flexDirection={['column', 'row']} alignItems={['stretch', 'flex-start']}>
-          <PrivateInfoColumn data-cy="expense-summary-payee">
-            <PrivateInfoColumnHeader>
-              <FormattedMessage id="Expense.PayTo" defaultMessage="Pay to" />
-            </PrivateInfoColumnHeader>
-            <LinkCollective collective={payee}>
-              <Flex alignItems="center">
-                <Avatar collective={payee} radius={24} />
-                <Span ml={2} color="black.900" fontSize="12px" fontWeight="bold" truncateOverflow>
-                  {payee.name}
-                </Span>
-              </Flex>
-            </LinkCollective>
-            {payeeLocation && isInvoice && (
-              <Container whiteSpace="pre-wrap" fontSize="11px" lineHeight="16px" mt={2}>
-                <LocationAddress location={payeeLocation} isLoading={isLoading || isLoadingLoggedInUser} />
-              </Container>
-            )}
-            {payee.website && (
-              <P mt={2} fontSize="11px">
-                <StyledLink href={payee.website} openInNewTab>
-                  {payee.website}
-                </StyledLink>
-              </P>
-            )}
-          </PrivateInfoColumn>
-          <PrivateInfoColumn mr={0}>
-            <PrivateInfoColumnHeader>
-              <FormattedMessage id="expense.payoutMethod" defaultMessage="payout method" />
-            </PrivateInfoColumnHeader>
-            <Container fontSize="12px" color="black.600">
-              <Box mb={3} data-cy="expense-summary-payout-method-type">
-                <PayoutMethodTypeWithIcon type={expense.payoutMethod?.type} />
-              </Box>
-              <div data-cy="expense-summary-payout-method-data">
-                <PayoutMethodData payoutMethod={expense.payoutMethod} isLoading={isLoading || isLoadingLoggedInUser} />
-              </div>
-              {expense.invoiceInfo && (
-                <Box mt={3} data-cy="expense-summary-invoice-info">
-                  <Container fontSize="11px" fontWeight="500" mb={2}>
-                    <FormattedMessage id="ExpenseForm.InvoiceInfo" defaultMessage="Additional invoice information" />
-                    &nbsp;&nbsp;
-                    <PrivateInfoIcon color="#969BA3" />
-                  </Container>
-                  <P fontSize="11px" lineHeight="16px" whiteSpace="pre-wrap">
-                    {expense.invoiceInfo}
-                  </P>
-                </Box>
-              )}
-            </Container>
-          </PrivateInfoColumn>
-          {host && (
-            <PrivateInfoColumn data-cy="expense-summary-host">
-              <PrivateInfoColumnHeader>
-                <FormattedMessage id="Fiscalhost" defaultMessage="Fiscal Host" />
-              </PrivateInfoColumnHeader>
-              <LinkCollective collective={host}>
-                <Flex alignItems="center">
-                  <Avatar collective={host} radius={24} />
-                  <Span ml={2} color="black.900" fontSize="12px" fontWeight="bold" truncateOverflow>
-                    {host.name}
-                  </Span>
-                </Flex>
-              </LinkCollective>
-              {host.location && (
-                <P whiteSpace="pre-wrap" fontSize="11px" mt={2}>
-                  {host.location.address}
-                </P>
-              )}
-              {host.website && (
-                <P mt={2} fontSize="11px">
-                  <StyledLink href={host.website} openInNewTab>
-                    {host.website}
-                  </StyledLink>
-                </P>
-              )}
-            </PrivateInfoColumn>
-          )}
-        </Flex>
-      )}
+      <ExpensePayeeDetails isLoading={isLoading} host={host} expense={expense} />
       {showProcessButtons && (
         <Container borderTop="1px solid #DCDEE0" mt={4} pt={12}>
           <Flex flexWrap="wrap" justifyContent="flex-end">
@@ -321,6 +250,7 @@ ExpenseSummary.propTypes = {
     id: PropTypes.string,
     legacyId: PropTypes.number,
     description: PropTypes.string.isRequired,
+    longDescription: PropTypes.string,
     currency: PropTypes.string.isRequired,
     invoiceInfo: PropTypes.string,
     createdAt: PropTypes.string,

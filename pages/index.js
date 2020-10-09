@@ -38,4 +38,20 @@ const HomePage = () => {
   );
 };
 
+HomePage.getInitialProps = ({ req, res }) => {
+  if (res && req && (req.language || req.locale === 'en')) {
+    res.set('Cache-Control', 'public, s-maxage=3600');
+  }
+
+  let skipDataFromTree = false;
+
+  // If on server side
+  if (req) {
+    req.noStyledJsx = true;
+    skipDataFromTree = true;
+  }
+
+  return { skipDataFromTree };
+};
+
 export default HomePage;
