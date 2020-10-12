@@ -135,6 +135,7 @@ class ContributionFlow extends React.Component {
   }
 
   submitOrder = async () => {
+    console.log('submit order');
     const { stepDetails, stepProfile, stepSummary } = this.state;
     const fromAccount = typeof stepProfile.id === 'string' ? { id: stepProfile.id } : { legacyId: stepProfile.id };
     this.setState({ error: null });
@@ -163,6 +164,8 @@ class ContributionFlow extends React.Component {
         },
       });
 
+      console.log('order response', response.data.createOrder);
+
       return this.handleOrderResponse(response.data.createOrder);
     } catch (e) {
       this.showError(getErrorFromGraphqlException(e));
@@ -170,6 +173,7 @@ class ContributionFlow extends React.Component {
   };
 
   handleOrderResponse = async ({ order, stripeError }) => {
+    console.log('handle order response');
     if (stripeError) {
       return this.handleStripeError(order, stripeError);
     } else {
@@ -178,6 +182,8 @@ class ContributionFlow extends React.Component {
   };
 
   handleStripeError = async (order, stripeError) => {
+    console.log('handle stripe error');
+    console.log('stripe error', stripeError);
     const { message, account, response } = stripeError;
     if (!response) {
       this.setState({ isSubmitting: false, error: message });

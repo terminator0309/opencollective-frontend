@@ -87,6 +87,7 @@ class EditPaymentMethods extends React.Component {
         const createdCreditCard = res.data.createCreditCard;
 
         if (createdCreditCard.stripeError) {
+          console.log(createdCreditCard.stripeError);
           this.handleStripeError(createdCreditCard.stripeError);
         } else {
           this.handleSuccess();
@@ -113,9 +114,13 @@ class EditPaymentMethods extends React.Component {
       return;
     }
 
+    console.log('message', message, 'respojnse', response);
+
     if (response.setupIntent) {
       const stripe = await getStripe();
+      console.log('response.setupIntent.client_secret', response.setupIntent.client_secret);
       const result = await stripe.handleCardSetup(response.setupIntent.client_secret);
+      console.log('result', result);
       if (result.error) {
         this.setState({ submitting: false, error: result.error.message });
       }
@@ -154,6 +159,7 @@ class EditPaymentMethods extends React.Component {
   };
 
   showError = error => {
+    console.log('show error');
     this.setState({ error });
     window.scrollTo(0, 0);
   };
@@ -193,6 +199,7 @@ class EditPaymentMethods extends React.Component {
   render() {
     const { Collective, loading } = this.props.data;
     const { showCreditCardForm, error, submitting, removedId, savingId } = this.state;
+    console.log('state error,', error);
     const paymentMethods = this.getPaymentMethodsToDisplay();
     return loading ? (
       <Loading />

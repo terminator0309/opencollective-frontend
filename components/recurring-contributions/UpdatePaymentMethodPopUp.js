@@ -12,7 +12,7 @@ import { getErrorFromGraphqlException } from '../../lib/errors';
 import { API_V2_CONTEXT, gqlV2 } from '../../lib/graphql/helpers';
 import { getPaymentMethodName } from '../../lib/payment_method_label';
 import { getPaymentMethodIcon, getPaymentMethodMetadata } from '../../lib/payment-method-utils';
-import { stripeTokenToPaymentMethod } from '../../lib/stripe';
+import { getStripe, stripeTokenToPaymentMethod } from '../../lib/stripe';
 
 import { Box, Flex } from '../Grid';
 import LoadingPlaceholder from '../LoadingPlaceholder';
@@ -23,6 +23,7 @@ import StyledHr from '../StyledHr';
 import StyledRadioList from '../StyledRadioList';
 import StyledRoundButton from '../StyledRoundButton';
 import { P } from '../Text';
+import ErrorPage from '../ErrorPage';
 
 const PaymentMethodBox = styled(Flex)`
   border-top: 1px solid ${themeGet('colors.black.300')};
@@ -73,13 +74,26 @@ const updatePaymentMethodMutation = gqlV2/* GraphQL */ `
   }
 `;
 
-const addPaymentMethodMutation = gqlV2/* GraphQL */ `
-  mutation AddPaymentMethod($paymentMethod: PaymentMethodCreateInput!, $account: AccountReferenceInput!) {
-    addStripeCreditCard(paymentMethod: $paymentMethod, account: $account) {
+const paymentMethodResponseFragment = gqlV2/* GraphQL */ `
+  fragment paymentMethodResponseFragment on PaymentMethodWithStripeError {
+    paymentMethod {
       id
       name
     }
+    stripeError {
+      message
+      response
+    }
   }
+`;
+
+const addPaymentMethodMutation = gqlV2/* GraphQL */ `
+  mutation AddPaymentMethod($paymentMethod: PaymentMethodCreateInput!, $account: AccountReferenceInput!) {
+    addCreditCard(paymentMethod: $paymentMethod, account: $account) {
+      ...paymentMethodResponseFragment
+    }
+  }
+  ${paymentMethodResponseFragment}
 `;
 
 const mutationOptions = { context: API_V2_CONTEXT };
@@ -105,7 +119,7 @@ const UpdatePaymentMethodPopUp = ({
   const [addedPaymentMethod, setAddedPaymentMethod] = useState(null);
 
   // GraphQL mutations and queries
-  const { data } = useQuery(paymentMethodsQuery, {
+  const { data, refetch } = useQuery(paymentMethodsQuery, {
     variables: {
       slug: router.query.slug,
     },
@@ -151,14 +165,18 @@ const UpdatePaymentMethodPopUp = ({
     if (addedPaymentMethod !== null) {
       sortedPMs = sortedPMs.sort(a => a.id !== addedPaymentMethod.id);
     }
+    console.log('sorted pms', sortedPMs);
     return sortedPMs;
   }, [paymentMethods]);
 
   useEffect(() => {
+    console.log('using effect');
     if (paymentOptions && selectedPaymentMethod === null && contribution.paymentMethod) {
       setSelectedPaymentMethod(first(paymentOptions.filter(option => option.id === contribution.paymentMethod.id)));
       setLoadingSelectedPaymentMethod(false);
     } else if (paymentOptions && addedPaymentMethod) {
+      console.log('new payment method added');
+      console.log(addedPaymentMethod);
       setSelectedPaymentMethod(paymentOptions.find(option => option.id === addedPaymentMethod.id));
       setLoadingSelectedPaymentMethod(false);
     }
@@ -278,15 +296,29 @@ const UpdatePaymentMethodPopUp = ({
                 try {
                   const res = await submitAddPaymentMethod({
                     variables: { paymentMethod: newPaymentMethod, account: { id: account.id } },
-                    refetchQueries: [
-                      {
-                        query: paymentMethodsQuery,
-                        variables: { slug: router.query.slug },
-                        context: API_V2_CONTEXT,
-                      },
-                    ],
+                    // refetchQueries: [
+                    //   {
+                    //     query: paymentMethodsQuery,
+                    //     variables: { slug: router.query.slug },
+                    //     context: API_V2_CONTEXT,
+                    //   },
+                    // ],
                   });
-                  setAddedPaymentMethod(res.data.addStripeCreditCard);
+                  console.log('res', res.data.addCreditCard);
+                  if (res.data.addCreditCard.stripeError) {
+                    const stripe = await getStripe();
+                    const result = await stripe.handleCardSetup(
+                      res.data.addCreditCard.stripeError.response.setupIntent.client_secret,
+                    );
+                    console.log('result', result);
+                    if (result.error) {
+                      createNotification('error', result.error.message);
+                      return false;
+                    }
+                  }
+                  console.log('set up fine');
+                  refetch();
+                  setAddedPaymentMethod(res.data.addCreditCard.paymentMethod);
                   setShowAddPaymentMethod(false);
                   setLoadingSelectedPaymentMethod(true);
                 } catch (error) {
