@@ -253,7 +253,7 @@ function CreateOrganizationForm(props) {
                       required
                       mt={3}
                       mb={2}
-                      data-cy="ccf-org-website"
+                      data-cy="cof-org-website"
                     >
                       {inputProps => (
                         <Field

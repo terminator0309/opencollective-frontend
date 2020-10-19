@@ -4,19 +4,25 @@ describe('create an organization', () => {
   });
 
   it('Creates an organization successfully without co-admin', () => {
-    cy.get('input[name=name]').type('testOrganization4');
-    cy.get('textarea[name=description]').type('short description for new org');
-    cy.get('input[name=website]').type('co.com');
-    cy.get('div[name=authorization]').click();
-    cy.get('button[type=submit]').click();
-    cy.get('[data-cy="cof-form-name"');
+    cy.get('[data-cy="cof-form-name"]').type('testorganization12');
+    cy.getByDataCy('cof-form-slug')
+      .first()
+      .find('input')
+      .invoke('val')
+      .then(sometext => expect(sometext).to.equal('testorganization12'));
+    cy.get('[data-cy="cof-org-description"]').type('short description for new org');
+    cy.get('[data-cy="cof-org-website"]').type('ww.com');
+    cy.get('[data-cy="custom-checkbox"]').click();
+    cy.get('[data-cy="cof-form-submit"]').click();
   });
 
   it('Shows an Error if Authorization is not checked', () => {
-    cy.get('input[name=name]').type('testOrganization2');
-    cy.get('textarea[name=description]').type('short description for new org');
-    cy.get('input[name=website]').type('newco.com');
-    cy.get('button[type=submit]').click();
-    cy.get('div[type=error]').contains('Please verify that you are an authorized representative of this organization');
+    cy.get('[data-cy="cof-form-name"]').type('testOrganization10');
+    cy.get('[data-cy="cof-org-description"]').type('short description for new org');
+    cy.get('[data-cy="cof-org-website"]').type('ww.com');
+    cy.get('[data-cy="cof-form-submit"]').click();
+    cy.get('[data-cy="cof-error-message"]').contains(
+      'Please verify that you are an authorized representative of this organization',
+    );
   });
 });

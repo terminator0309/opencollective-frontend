@@ -67,11 +67,14 @@ class CreateOrganization extends React.Component {
         const member = await this.props.LoggedInUser.memberOf.filter(
           member => member.collective.id === response.data.createCollective.legacyId,
         );
+        const test = this.state.admins.filter(admin => {
+          if (admin.member !== this.props.LoggedInUser.collective) {
+            return admin;
+          }
+        });
+
         this.setState({
-          admins: [
-            ...this.state.admins,
-            { role: 'ADMIN', member: this.props.LoggedInUser.collective, id: member[0].id },
-          ],
+          admins: [...test, { role: 'ADMIN', member: this.props.LoggedInUser.collective, id: member[0].id }],
         });
         await this.props.editCollectiveMembers({
           variables: {
