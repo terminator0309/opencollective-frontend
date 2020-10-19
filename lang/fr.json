@@ -549,7 +549,7 @@
   "createOrg.form.suggestedLabel": "Suggested",
   "createOrg.form.webstiteLabel": "What's your Organization's website",
   "createorganization.authorization.label": "I verify that I am an authorized representative of this organization and \n                            have the right to act on its behalf.",
-  "createOrganization.tos": "By joining, you agree to our <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>.\n                      <strong>Already have an account?</strong>  <Link>Sign in →</Link>",
+  "createOrganization.tos": "By joining, you agree to our <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>.\n                      <strong>Already have an account?</strong> <I18nSignLink>Sign in →</I18nSignLink>",
   "createPledge.collectiveDetails": "Détails du nouveau collectif :",
   "createPledge.conditions": "Vous ne pouvez pour l'instant faire de promesse de dons qu'aux projets qui disposent d'un dépôt ou d'un profil d'organisation sur GitHub. Le projet doit avoir au moins 100 étoiles !",
   "createPledge.faq.howToClaim": "Vous devrez contacter <SupportLink></SupportLink> pour prouver que vous êtes un administrateur de ce projet.",

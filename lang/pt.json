@@ -549,7 +549,7 @@
   "createOrg.form.suggestedLabel": "Suggested",
   "createOrg.form.webstiteLabel": "What's your Organization's website",
   "createorganization.authorization.label": "I verify that I am an authorized representative of this organization and \n                            have the right to act on its behalf.",
-  "createOrganization.tos": "By joining, you agree to our <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>.\n                      <strong>Already have an account?</strong>  <Link>Sign in →</Link>",
+  "createOrganization.tos": "By joining, you agree to our <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>.\n                      <strong>Already have an account?</strong> <I18nSignLink>Sign in →</I18nSignLink>",
   "createPledge.collectiveDetails": "Detalhes do novo coletivo:",
   "createPledge.conditions": "No momento, você só pode prometer para projetos de código aberto com um repositório ou organização do GitHub. Nós\n                exigimos que o projeto tenha pelo menos 100 estrelas no GitHub!",
   "createPledge.faq.howToClaim": "You’ll need to contact <SupportLink></SupportLink> to proove that you are an admin of this project.",
