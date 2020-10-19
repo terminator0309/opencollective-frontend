@@ -77,9 +77,12 @@ const TransactionRejectButton = props => {
                 <MessageBox type="warning" mx={2}>
                   <FormattedMessage
                     id="transaction.reject.info"
-                    defaultMessage="Please only use this option if you do not wish for this contributor to be a part of your Collective. This will refund their transaction, remove them from your Collective, and display the contribution as 'rejected' in your ledger.{linebreak}{linebreak}If you are only trying to refund a mistaken transaction, please use the 'Refund' button instead."
+                    defaultMessage="Please only use this option if you do not wish for this contributor to be a part of your Collective. This will refund their transaction, remove them from your Collective, and display the contribution as 'rejected' in your ledger.{linebreak}{linebreak}{refund}"
                     values={{
                       linebreak: <br />,
+                      refund: props.canRefund
+                        ? "If you are only trying to refund a mistaken transaction, please use the 'Refund' button instead."
+                        : 'Please only use this option if you do not wish for this contributor to be a part of your Collective. This will remove them from your Collective.',
                     }}
                   />
                 </MessageBox>
